@@ -1,0 +1,67 @@
+Functions/Features
+
+- User Registration and Authentication:
+    o Users can register on DriveShare using email and password
+      authentication.
+    o Include 3 security questions when registering.
+
+- Car Listing and Management:
+    o Car owners can list their vehicles for short-term rental, providing
+      details such as car model, year, mileage, availability calendar, pick up
+      location and rental pricing.
+    o Owners have the ability to manage their car listings, including
+      updating availability and price
+    o The system should prevent the same car from being rented by more
+      than once at the same time.
+
+- Search and Booking:
+    o Renters can search for available cars based on location, date, and other
+      preferences.
+    o Implement a booking system allowing renters to reserve a car for a
+      specific period.
+
+- Messaging and Communication:
+    o DriveShare includes a messaging system to facilitate communication
+      between car owners and renters.
+    o Send notifications for booking requests, confirmations, and important
+      updates via email or in-app messages.
+
+- Payment:
+    o Allow renters to make payment (A real payment is not required. A
+      payment button with amount is enough, clicking on the button will
+      change the balance and send notification to both owner and renter)
+
+- Rental History
+    o Both car owners and renters can view their rental history.
+
+- Reviews:
+    o Implement a review and rating system for both owner and renter to
+      provide feedback on the rental experience.
+
+Implementation
+
+- User Authentication and Encryption:
+    o Implement the Singleton pattern to manage the user's session securely.
+
+- Observer Pattern for Booking Notifications:
+    o Apply the Observer pattern to notify users about important booking-
+      related updates and changes and reviews
+
+- Mediator Pattern for UI Components:
+    o Implement the Mediator pattern to manage communication between
+      different UI components, creating a cohesive and user-friendly
+      interface.
+
+- Builder Pattern for Car Listing Creation:
+    o Utilize the Builder pattern to create car listing objects with various
+      attributes, allowing for flexibility in car listing creation and
+      customization.
+
+- Proxy Pattern for Payment Integration:
+    o Implement the Proxy pattern to handle secure communication and
+      transactions between the application and the payment system.
+      
+- Chain of Responsibility for Password Recovery:
+    o Apply the Chain of Responsibility pattern to create a secure process
+      (using three security questions to build the chain) for recovering a
+      forgotten password.
