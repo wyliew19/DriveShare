@@ -26,7 +26,7 @@ def login(email: str = Form(...), password: str = Form(...)):
     try:
         authentication = user_manager.login(email, password)
         if authentication:
-            redirect_url = f"/home"  # Redirect to the home page after successful login
+            redirect_url = f"/home" # Redirect to the home page after successful login
             return RedirectResponse(url=redirect_url)
         else:
             raise HTTPException(status_code=401, detail="Invalid credentials")
