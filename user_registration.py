@@ -34,5 +34,13 @@ class User:
         finally:
             conn.close()
 
+    def login(self, email: str, password: str) -> bool:
+        conn = sqlite3.connect(self.database_name)
+        cursor = conn.cursor()
+        cursor.execute('''SELECT COUNT(*) FROM users WHERE email = ? AND password = ?''', (email, password))
+        count = cursor.fetchone()[0]
+        conn.close()
+        return count > 0
+
     # Other methods...
 

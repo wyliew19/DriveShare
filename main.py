@@ -16,6 +16,29 @@ class RegistrationForm(BaseModel):
 def registration(request: Request):
     return templates.TemplateResponse("Registration.html", {"request": request})
 
+####### Login Page and Authentication ##############
+@app.get("/login_page/", response_class=HTMLResponse)
+def login_page(request: Request):
+    return templates.TemplateResponse("login.html", {"request": request})
+
+@app.post("/login/")
+def login(email: str = Form(...), password: str = Form(...)):
+    try:
+        authentication = user_manager.login(email, password)
+        if authentication:
+            redirect_url = f"/home"  # Redirect to the home page after successful login
+            return RedirectResponse(url=redirect_url)
+        else:
+            raise HTTPException(status_code=401, detail="Invalid credentials")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/home", response_class=HTMLResponse)
+def handle_login_page(request: Request):
+    return templates.TemplateResponse("home.html", {"request": request})
+####### Login Page and Authentication ##############
+
+####### Registration ###################################
 @app.post("/register/")
 def register(email: str = Form(...), password: str = Form(...)):
     try:
@@ -30,3 +53,8 @@ def register(email: str = Form(...), password: str = Form(...)):
 @app.post("/register_confirmation", response_class=HTMLResponse)
 def handle_registration_confirmation(request: Request):
     return templates.TemplateResponse("registration_confirmation.html", {"request": request})
+
+@app.get("/home_page/", response_class=HTMLResponse)
+def login_page(request: Request):
+    return templates.TemplateResponse("home.html", {"request": request})
+####### Registration ###################################
