@@ -34,7 +34,7 @@ def login(email: str = Form(...), password: str = Form(...)):
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/home", response_class=HTMLResponse)
-def handle_login_page(request: Request):
+def handle_home_page(request: Request):
     return templates.TemplateResponse("home.html", {"request": request})
 ####### Login Page and Authentication ##############
 
@@ -55,6 +55,6 @@ def handle_registration_confirmation(request: Request):
     return templates.TemplateResponse("registration_confirmation.html", {"request": request})
 
 @app.get("/home_page/", response_class=HTMLResponse)
-def login_page(request: Request):
+def handle_home_page(request: Request):
     return templates.TemplateResponse("home.html", {"request": request})
 ####### Registration ###################################
