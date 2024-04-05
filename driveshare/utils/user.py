@@ -1,6 +1,15 @@
 import sqlite3
+from dataclasses import dataclass
+from database import DatabaseHandler
 
+@dataclass
 class User:
+    id: int
+    email: str
+    password: str
+
+
+class UserSingleton:
     #This line defines a class-level variable _instance and initializes it to None. 
     #This variable will be used to store the single instance of the class.
     _instance = None
@@ -14,7 +23,7 @@ class User:
             this line creates a new instance of the class by calling the __new__ method of 
             the superclass (super(User, cls).__new__) and passing 
             the class (cls), along with any arguments and keyword arguments (*args and **kwargs).'''
-            cls._instance = super(User, cls).__new__(cls, *args, **kwargs)
+            cls._instance = super(UserSingleton, cls).__new__(cls, *args, **kwargs)
             cls._instance.__init__() #This creates a new instance
         return cls._instance #This returns the single instance of the class
     '''In summary, this code implements the Singleton pattern by ensuring that only one instance 
@@ -29,45 +38,15 @@ class User:
     if not cls._instance will not be executed. Instead, the 
     existing instance stored in cls._instance will be returned directly.'''
 
-    def __init__(self, database_name='users.db'):
-        self.database_name = database_name
-
-    def create_table(self):
-        conn = sqlite3.connect(self.database_name)
-        cursor = conn.cursor()
-        cursor.execute('''CREATE TABLE IF NOT EXISTS users (
-                            email TEXT PRIMARY KEY,
-                            password TEXT,
-                            rental_history TEXT,
-                            security_question TEXT,
-                            security_answer TEXT
-                        )''')
-        conn.commit()
-        conn.close()
+    def __init__(self, database_name='driveshare.db'):
+        self.db = DatabaseHandler(database_name)
 
     def register(self, email: str, password: str):
-        conn = sqlite3.connect(self.database_name)
-        cursor = conn.cursor()
-        try:
-            cursor.execute('''INSERT INTO users (email, password) 
-                              VALUES (?, ?)''', (email, password))
-            conn.commit()
-            print("User registered successfully")
-        except sqlite3.IntegrityError as e:
-            if "UNIQUE constraint failed: users.email" in str(e):
-                raise ValueError("Email already exists, please choose a different one")
-            else:
-                raise  # Re-raise the exception if it's not due to unique constraint violation
-        finally:
-            conn.close()
+        self.db.register(email, password)
 
     def login(self, email: str, password: str) -> bool:
-        conn = sqlite3.connect(self.database_name)
-        cursor = conn.cursor()
-        cursor.execute('''SELECT COUNT(*) FROM users WHERE email = ? AND password = ?''', (email, password))
-        count = cursor.fetchone()[0]
-        conn.close()
-        return count > 0
+        return self.db.login(email, password)
 
-    # Other methods...
+    def securityAnswers(self, secAnswer1: str, secAnswer2: str, secAnswer3: str):
+        self.db.securityAnswers(secAnswer1, secAnswer2, secAnswer3)
 
