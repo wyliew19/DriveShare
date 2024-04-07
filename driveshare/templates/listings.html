@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>DriveShare Listings</title>
+    <!-- Add your CSS and JS files here -->
+</head>
+<body>
+    <h1>DriveShare Listings</h1>
+    {% for listing in listings %}
+        <p>{{ listing.make }} {{ listing.model }}: {{ listing.price }}</p>
+    {% endfor %}
+</body>
+</html>

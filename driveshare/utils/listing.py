@@ -1,29 +1,10 @@
-import sqlite3
-from dataclasses import dataclass
-from database import DatabaseHandler
-
-@dataclass
-class Car:
-    """A car that can be listed"""
-    make: str = None
-    model: str = None
-    year: int = None
-    color: str = None
-    car_type: str = None 
-    price: float = None
-    location: str = None
-
-@dataclass
-class Listing:
-    """A car listing from user"""
-    seller_id: int = None
-    buyer_id: int = None
-    car: Car = None
+from driveshare.utils.database import DatabaseHandler
+from driveshare.models.listing import Listing, Car
 
 class ListingBuilder:
     """Builds a car listing from user"""
-    def __init__(self, database_name='driveshare.db'):
-        self.db = DatabaseHandler(database_name)
+    def __init__(self):
+        self.reset()
         
     def reset(self):
         self.listing = Listing()
@@ -45,33 +26,46 @@ class ListingBuilder:
         temp = self.listing
         self.reset()
         return temp
-
-    def save(self) -> Listing:
-        """Save the car listing to the database and reset the builder"""
-        self.db.save_listing(self.listing)
-        return self.get_listing()
         
 
 class ListingManager:
+    """Class to manage car listing operations"""
 
-    def __init__(self, database_name='driveshare.db'):
-        self.db = DatabaseHandler(database_name)
-        self.builder = ListingBuilder(self.db)
+    def _tuple_to_listing(self, listing_tuple: tuple) -> Listing:
+        """Convert a tuple from the database to a Listing object"""
+        self.builder.set_seller_id(listing_tuple[0])
+        self.builder.set_buyer_id(listing_tuple[1])
+        self.builder.set_car(listing_tuple[3], listing_tuple[4], listing_tuple[5], listing_tuple[6], listing_tuple[7], listing_tuple[8], listing_tuple[9])
+        return self.builder.get_listing()
 
-    def create_listing(self, seller_id, make, model, year, color, car_type, price, location):
+
+    def __init__(self):
+        self.db = DatabaseHandler()
+        self.builder = ListingBuilder()
+
+    def __getitem__(self, id):
+        return self.get_listing(id)
+
+    def create_listing(self, seller_id, make, model, year, color, car_type, price, location) -> Listing:
+        """Create a new car listing"""
+        # Set the seller id and car details
         self.builder.set_seller_id(seller_id)
         self.builder.set_car(make, model, year, color, car_type, price, location)
-        return self.builder.save()
+        # Get the listing object from the builder
+        listing = self.builder.get_listing()
+        # Save the listing to the database
+        self.db.save_listing(listing)
+        return listing
 
-    def get_listings(self) -> list[Listing]:
-        listings = self.db.get_listings()
+    def get_listings(self, id: int | None = None) -> list[Listing]:
+        """Get all car listings"""
+        if id is not None:
+            listings = self.db.get_listings(id)
+        else:
+            listings = self.db.get_listings()
         ret_list = []
         for listing in listings:
-            self.builder.set_seller_id(listing[0])
-            if listing[1] is not None:
-                self.builder.set_buyer_id(listing[1])
-            self.builder.set_car(listing[3], listing[4], listing[5], listing[6], listing[7], listing[8], listing[9])
-            ret_list.append(self.builder.get_listing())
+            ret_list.append(self._tuple_to_listing(listing))
         return ret_list
 
     def get_listing(self, listing_id) -> Listing:
@@ -82,5 +76,7 @@ class ListingManager:
         self.builder.set_car(listing[3], listing[4], listing[5], listing[6], listing[7], listing[8], listing[9])
         return self.builder.get_listing()
 
-
+    def purchase_listing(self, listing_id, buyer_id):
+        self.db.purchase_listing(listing_id, buyer_id)
+        return (self.get_listing(listing_id).buyer_id == buyer_id)
     

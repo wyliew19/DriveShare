@@ -1,15 +1,10 @@
-import sqlite3
-from dataclasses import dataclass
-from database import DatabaseHandler
-
-@dataclass
-class User:
-    id: int
-    email: str
-    password: str
+from typing import Optional
+from driveshare.utils.database import DatabaseHandler
+from driveshare.models.user import User
 
 
 class UserSingleton:
+    """A singleton class for handling user registration and login"""
     #This line defines a class-level variable _instance and initializes it to None. 
     #This variable will be used to store the single instance of the class.
     _instance = None
@@ -38,14 +33,17 @@ class UserSingleton:
     if not cls._instance will not be executed. Instead, the 
     existing instance stored in cls._instance will be returned directly.'''
 
-    def __init__(self, database_name='driveshare.db'):
-        self.db = DatabaseHandler(database_name)
+    def __init__(self):
+        self.db = DatabaseHandler()
 
-    def register(self, email: str, password: str):
+    def register(self, email: str, password: str) -> User:
         self.db.register(email, password)
 
-    def login(self, email: str, password: str) -> bool:
+    def login(self, email: str, password: str) -> Optional[User]:
         return self.db.login(email, password)
+    
+    def __getitem__(self, email: str):
+        return self.db.get_id(email)
 
     def securityAnswers(self, secAnswer1: str, secAnswer2: str, secAnswer3: str):
         self.db.securityAnswers(secAnswer1, secAnswer2, secAnswer3)

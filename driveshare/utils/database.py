@@ -1,7 +1,10 @@
 import sqlite3
-from listing import Listing
+from typing import Optional
+from driveshare.models.listing import Listing
+from driveshare.models.user import User
 
 class DatabaseHandler:
+    """A singleton class to handle database operations"""
     _instance = None
 
     def __new__(cls, *args, **kwargs):
@@ -15,7 +18,7 @@ class DatabaseHandler:
         self._ensure_db()
 
     def _ensure_db(self):
-        """Ensure the database and listing table exist"""
+        """Ensure the database and tables exist"""
         conn = sqlite3.connect(self.database_name)
         cursor = conn.cursor()
         cursor.execute('''CREATE TABLE IF NOT EXISTS users (
@@ -24,7 +27,7 @@ class DatabaseHandler:
                             password TEXT,
                             security_answer1 TEXT,
                             security_answer2 TEXT,
-                            security_answer3 TEXT,
+                            security_answer3 TEXT
                         )''')
         conn.commit()
         cursor.execute('''CREATE TABLE IF NOT EXISTS listings (
@@ -42,7 +45,15 @@ class DatabaseHandler:
         conn.commit()
         conn.close()
 
-    def register(self, email: str, password: str):
+    def get_id(self, email: str) -> int:
+        conn = sqlite3.connect(self.database_name)
+        cursor = conn.cursor()
+        cursor.execute('''SELECT id FROM users WHERE email = ?''', (email,))
+        id = cursor.fetchone()[0]
+        conn.close()
+        return id
+
+    def register(self, email: str, password: str) -> User:
         conn = sqlite3.connect(self.database_name)
         cursor = conn.cursor()
         try:
@@ -50,19 +61,23 @@ class DatabaseHandler:
                               VALUES (?, ?)''', (email, password))
             conn.commit()
             print("User registered successfully")
+            cursor.execute('''SELECT id FROM users WHERE email = ?''', (email,))
+            return User(cursor.fetchone()[0], email, password)
         except sqlite3.IntegrityError as e:
             if "UNIQUE constraint failed: users.email" in str(e):
                 raise ValueError("Email already exists, please choose a different one")
             else:
                 raise
 
-    def login(self, email: str, password: str) -> bool:
+    def login(self, email: str, password: str) -> Optional[User]:
         conn = sqlite3.connect(self.database_name)
         cursor = conn.cursor()
-        cursor.execute('''SELECT COUNT(*) FROM users WHERE email = ? AND password = ?''', (email, password))
-        count = cursor.fetchone()[0]
+        cursor.execute('''SELECT id FROM users WHERE email = ? AND password = ?''', (email, password))
+        id = cursor.fetchone()[0]
         conn.close()
-        return count > 0
+        if id:
+            return User(id, email, password)
+        return None
     
     def securityAnswers(self, secAnswer1: str, secAnswer2: str, secAnswer3: str):
         conn = sqlite3.connect(self.database_name)
@@ -85,10 +100,13 @@ class DatabaseHandler:
         conn.commit()
         conn.close()
 
-    def get_listings(self) -> list[tuple]:
+    def get_listings(self, email: int | None = None) -> list[tuple]:
         conn = sqlite3.connect(self.database_name)
         cursor = conn.cursor()
-        cursor.execute('''SELECT * FROM listings WHERE buyer_id IS NULL''')
+        if id is not None:
+            cursor.execute('''SELECT * FROM listings WHERE seller_id = ?''', (id,))
+        else:
+            cursor.execute('''SELECT * FROM listings WHERE buyer_id IS NULL''')
         listings = cursor.fetchall()
         conn.close()
         return listings
@@ -100,3 +118,10 @@ class DatabaseHandler:
         listing = cursor.fetchone()
         conn.close()
         return listing
+    
+    def purchase_listing(self, listing_id: int, buyer_id: int):
+        conn = sqlite3.connect(self.database_name)
+        cursor = conn.cursor()
+        cursor.execute('''UPDATE listings SET buyer_id = ? WHERE id = ?''', (buyer_id, listing_id))
+        conn.commit()
+        conn.close()

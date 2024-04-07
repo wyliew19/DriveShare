@@ -1,21 +1,20 @@
-from typing import Annotated
-
 from fastapi import FastAPI, HTTPException, Request, Form
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
-from pydantic import BaseModel
-from driveshare.utils.user import UserSingleton, User
+
+from driveshare.utils.user import UserSingleton
 from driveshare.utils.listing import ListingManager
 
+# Create a FastAPI instance with session middleware and Jinja2 templates
 app = FastAPI()
-user_manager = UserSingleton()
-listing_manager = ListingManager()
 templates = Jinja2Templates(directory="driveshare/templates")
 
-class RegistrationForm(BaseModel):
-    email: str
-    password: str
+# Backend managers
+user_manager = UserSingleton()
+listing_manager = ListingManager()
 
+
+####### Root Page ##################################
 @app.get("/", response_class=HTMLResponse)
 def registration(request: Request):
     return templates.TemplateResponse("Registration.html", {"request": request})
@@ -44,9 +43,9 @@ def handle_home_page(request: Request):
 
 ####### Registration ###############################
 @app.post("/register/")
-def register(email: str = Form(...), password: str = Form(...)):
+def register(request: Request, email: str = Form(...), password: str = Form(...)):
     try:
-        user_manager.register(email, password)
+        id = user_manager.register(email, password).id
         redirect_url = f"/register_confirmation"
         return RedirectResponse(url=redirect_url)
     except ValueError as e:
@@ -64,15 +63,16 @@ def handle_home_page(request: Request):
 ####### Registration ################################
 
 ####### Listings #####################################
-@app.get("/listings/", response_class=HTMLResponse)
-def listing_page(request: Request):
-    return templates.TemplateResponse("listings.html", {"request": request})
+
+@app.get("/listings", response_class=HTMLResponse)
+def listings(request: Request):
+    listings = listing_manager.get_listings()
+    return templates.TemplateResponse("listings.html", {"request": request, "listings": listings})
+
 
 @app.get("/listing_confirmation", response_class=HTMLResponse)
 def listing_confirmation(request: Request):
     return templates.TemplateResponse("listing_confirmation.html", {"request": request})
-
-@app.get('/listing?id=', response_class=HTMLResponse)
 
 @app.post("/create_listing/")
 def create_listing(seller_id: int = Form(...), make: str = Form(...), model: str = Form(...), year: int = Form(...), color: str = Form(...), car_type: str = Form(...), price: float = Form(...), location: str = Form(...)):
