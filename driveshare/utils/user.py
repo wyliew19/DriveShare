@@ -2,8 +2,7 @@ from typing import Optional
 from driveshare.utils.database import DatabaseHandler
 from driveshare.models.user import User
 
-
-class UserSingleton:
+class UserMediator:
     """A singleton class for handling user registration and login"""
     #This line defines a class-level variable _instance and initializes it to None. 
     #This variable will be used to store the single instance of the class.
@@ -18,7 +17,7 @@ class UserSingleton:
             this line creates a new instance of the class by calling the __new__ method of 
             the superclass (super(User, cls).__new__) and passing 
             the class (cls), along with any arguments and keyword arguments (*args and **kwargs).'''
-            cls._instance = super(UserSingleton, cls).__new__(cls, *args, **kwargs)
+            cls._instance = super(UserMediator, cls).__new__(cls, *args, **kwargs)
             cls._instance.__init__() #This creates a new instance
         return cls._instance #This returns the single instance of the class
     '''In summary, this code implements the Singleton pattern by ensuring that only one instance 
@@ -36,14 +35,14 @@ class UserSingleton:
     def __init__(self):
         self.db = DatabaseHandler()
 
+    def __getitem__(self, email: str):
+        return self.db.get_id(email)
+
     def register(self, email: str, password: str) -> User:
         self.db.register(email, password)
 
     def login(self, email: str, password: str) -> Optional[User]:
         return self.db.login(email, password)
-    
-    def __getitem__(self, email: str):
-        return self.db.get_id(email)
 
     def securityAnswers(self, secAnswer1: str, secAnswer2: str, secAnswer3: str):
         self.db.securityAnswers(secAnswer1, secAnswer2, secAnswer3)

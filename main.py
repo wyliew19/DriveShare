@@ -2,17 +2,19 @@ from fastapi import FastAPI, HTTPException, Request, Form
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 
-from driveshare.utils.user import UserSingleton
-from driveshare.utils.listing import ListingManager
+from driveshare.utils.user import UserMediator
+from driveshare.utils.listing import ListingMediator
+from driveshare.models.basemodels import ListingPost
+from driveshare.security.cookie import SessionHandler
 
 # Create a FastAPI instance with session middleware and Jinja2 templates
 app = FastAPI()
 templates = Jinja2Templates(directory="driveshare/templates")
 
 # Backend managers
-user_manager = UserSingleton()
-listing_manager = ListingManager()
-
+user_manager = UserMediator()
+listing_manager = ListingMediator()
+session_handler = SessionHandler()
 
 ####### Root Page ##################################
 @app.get("/", response_class=HTMLResponse)
@@ -42,12 +44,14 @@ def handle_home_page(request: Request):
 ####### Login Page and Authentication ##############
 
 ####### Registration ###############################
-@app.post("/register/")
-def register(request: Request, email: str = Form(...), password: str = Form(...)):
+@app.post("/register/", response_class=HTMLResponse)
+def register(email: str = Form(...), password: str = Form(...)):
     try:
-        id = user_manager.register(email, password).id
+        user_manager.register(email, password)
         redirect_url = f"/register_confirmation"
-        return RedirectResponse(url=redirect_url)
+        response = RedirectResponse(url=redirect_url)
+        response.set_cookie(key="email", value=email)
+        return response
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
@@ -70,15 +74,21 @@ def listings(request: Request):
     return templates.TemplateResponse("listings.html", {"request": request, "listings": listings})
 
 
+
+@app.get("/listings/post", response_class=HTMLResponse)
+def post_listing(request: Request):
+    return templates.TemplateResponse("post_listing.html", {"request": request})
+
+@app.post("/listings/post")
+def post_listing(request: Request):
+    post = ListingPost(**request.form())
+    listing_manager.create_listing(post.email, post.make, post.model, post.year, post.color,
+                                   post.car_type, post.price, post.location)
+    return RedirectResponse(url="/listings")
+    
 @app.get("/listing_confirmation", response_class=HTMLResponse)
 def listing_confirmation(request: Request):
     return templates.TemplateResponse("listing_confirmation.html", {"request": request})
 
-@app.post("/create_listing/")
-def create_listing(seller_id: int = Form(...), make: str = Form(...), model: str = Form(...), year: int = Form(...), color: str = Form(...), car_type: str = Form(...), price: float = Form(...), location: str = Form(...)):
-    try:
-        listing_manager.create_listing(seller_id, make, model, year, color, car_type, price, location)
-        redirect_url = f"/listing_confirmation"
-        return RedirectResponse(url=redirect_url)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    
+####### Listings #####################################

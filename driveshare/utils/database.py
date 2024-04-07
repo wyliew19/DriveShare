@@ -40,7 +40,9 @@ class DatabaseHandler:
                             color TEXT,
                             type TEXT,
                             price REAL,
-                            location TEXT
+                            city TEXT,
+                            state TEXT,
+                            availability TEXT
                         )''')
         conn.commit()
         conn.close()
@@ -93,20 +95,40 @@ class DatabaseHandler:
     def save_listing(self, listing: Listing):
         conn = sqlite3.connect(self.database_name)
         cursor = conn.cursor()
-        cursor.execute('''INSERT INTO listings (seller_id, buyer_id, make, model, year, color, type, price, location)
+        cursor.execute('''INSERT INTO listings (seller_id, buyer_id, make, model, year, color, type, price, state, city, availability)
                           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)''', 
                           (listing.seller_id, listing.buyer_id, listing.car.make, listing.car.model, 
-                           listing.car.year, listing.car.color, listing.car.type, listing.car.price, listing.car.location))
+                           listing.car.year, listing.car.color, listing.car.type, listing.car.price,
+                           listing.location.state, listing.location.city, listing.availability.days))
         conn.commit()
         conn.close()
 
-    def get_listings(self, email: int | None = None) -> list[tuple]:
+    def get_listings(self, id: int | None = None, filters: dict[str, str] | None = None) -> list[tuple]:
+        """Get listings from the database   
+        Args:
+            id (int, optional): The ID of the seller. Defaults to None.
+            filters (dict[str, str], optional): Filters to apply to the listings. Defaults to None."""
         conn = sqlite3.connect(self.database_name)
         cursor = conn.cursor()
+        query = 'SELECT * FROM listings WHERE '
+        params = []
+
         if id is not None:
-            cursor.execute('''SELECT * FROM listings WHERE seller_id = ?''', (id,))
-        else:
-            cursor.execute('''SELECT * FROM listings WHERE buyer_id IS NULL''')
+            query += 'seller_id = ? AND '
+            params.append(id)
+
+        if filters is not None:
+            for key, value in filters.items():
+                query += f'{key} = ? AND '
+                params.append(value)
+
+        # Remove the last ' AND ' from the query
+        query = query[:-4]
+
+        if not params:
+            query += 'buyer_id IS NULL'
+
+        cursor.execute(query, tuple(params))
         listings = cursor.fetchall()
         conn.close()
         return listings
