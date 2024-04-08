@@ -79,6 +79,14 @@ class DatabaseHandler:
             return None
         return User(user[0], user[1])
 
+    def get_user_email(self, id: int) -> str:
+        conn = sqlite3.connect(self.database_name)
+        cursor = conn.cursor()
+        cursor.execute('''SELECT email FROM users WHERE id = ?''', (id,))
+        email = cursor.fetchone()[0]
+        conn.close()
+        return email
+
     def register(self, email: str, password: str) -> Optional[User]:
         password = self.hasher.hash(password)
         conn = sqlite3.connect(self.database_name)
