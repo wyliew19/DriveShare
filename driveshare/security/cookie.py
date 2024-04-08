@@ -1,5 +1,4 @@
 from fastapi.responses import RedirectResponse
-from driveshare.security.hash import Hasher
 
 class SessionHandler:
     _instance = None
@@ -11,15 +10,17 @@ class SessionHandler:
         return cls._instance
 
     def __init__(self):
-        self.hasher = Hasher('sha256')
-
-    def set_cookie(self, url: str, value: str) -> RedirectResponse:
+        self.secret_key = "n688OMzRj1RkMeQuvo9P92bWO6eYEYXU"
+        self.sessions = []
+    
+    def get_cookied_redirect(self, url: str, value: str) -> RedirectResponse:
         response = RedirectResponse(url=url)
-        response.set_cookie(key="email", value=self.hasher.hash(value))
+        response.set_cookie(key=self.secret_key, value=value)
+        self.sessions.append(value)
         return response
+    
+    def get_cookie(self, request) -> str:
+        return request.cookies.get(self.secret_key)
 
-    def confirm_session(self, request) -> bool:
-        email = request.cookies.get("email")
-        if email:
-            return self.hasher.verify(email, email)
-        return False
+    def remove_session(self, value: str) -> None:
+        self.sessions.remove(value)

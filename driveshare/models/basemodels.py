@@ -2,7 +2,7 @@ from pydantic import BaseModel
 from typing import List
 
 class FilterSettings(BaseModel):
-    email: int = None
+    email: str = None
     make: str = None
     model: str = None
     year: int = None
@@ -17,7 +17,7 @@ class Search(BaseModel):
     filters: List[FilterSettings]
 
 class ListingPost(BaseModel):
-    email: int = None
+    email: str = None
     make: str = None
     model: str = None
     year: int = None

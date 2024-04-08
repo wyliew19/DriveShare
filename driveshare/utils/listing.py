@@ -75,8 +75,6 @@ class ListingMediator:
                        color: str, car_type: str, price: float, city: str, state: str,
                        days: str) -> Listing:
         """Create a new car listing"""
-
-       
         # Get the seller id from the email
         seller_id = self.db.get_user_id(email)
         if seller_id is None:

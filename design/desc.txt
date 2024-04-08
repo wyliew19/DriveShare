@@ -5,7 +5,7 @@ Functions/Features
       authentication.
     o Include 3 security questions when registering.
 
-- Car Listing and Management:
+- Car Listing and Management: 
     o Car owners can list their vehicles for short-term rental, providing
       details such as car model, year, mileage, availability calendar, pick up
       location and rental pricing.

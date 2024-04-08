@@ -141,9 +141,18 @@ class DatabaseHandler:
         conn.close()
         return listing
     
-    def purchase_listing(self, listing_id: int, buyer_id: int):
+    def purchase_listing(self, listing_id: int, email: str):
+        buyer_id = self.get_id(email)
         conn = sqlite3.connect(self.database_name)
         cursor = conn.cursor()
         cursor.execute('''UPDATE listings SET buyer_id = ? WHERE id = ?''', (buyer_id, listing_id))
         conn.commit()
         conn.close()
+
+    def get_user_password(self, email: str) -> str:
+        conn = sqlite3.connect(self.database_name)
+        cursor = conn.cursor()
+        cursor.execute('''SELECT password FROM users WHERE email = ?''', (email,))
+        password = cursor.fetchone()[0]
+        conn.close()
+        return password

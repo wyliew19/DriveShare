@@ -32,7 +32,7 @@ def login(email: str = Form(...), password: str = Form(...)):
         authentication = user_manager.login(email, password)
         if authentication:
             redirect_url = f"/home" # Redirect to the home page after successful login
-            return RedirectResponse(url=redirect_url)
+            return session_handler.get_cookied_redirect(url=redirect_url, value=email)
         else:
             raise HTTPException(status_code=401, detail="Invalid credentials")
     except Exception as e:
@@ -43,15 +43,30 @@ def handle_home_page(request: Request):
     return templates.TemplateResponse("home.html", {"request": request})
 ####### Login Page and Authentication ##############
 
+@app.post("/logout/")
+def logout(request: Request):
+    email = session_handler.get_cookie(request)
+    session_handler.remove_session(email)
+    return RedirectResponse(url="/")
+
+####### Payment ####################################
+@app.get("/payment/auth", response_class=HTMLResponse)
+def authorize(request: Request):
+    return templates.TemplateResponse("authorize.html", {"request": request})
+
+@app.post("/payment/auth")
+def payment(request: Request, password: str = Form(...)):
+    proxy = PaymentProxy(session_handler.get_cookie(request))
+    return proxy.authorize(password)
+####### Payment ####################################
+
 ####### Registration ###############################
-@app.post("/register/", response_class=HTMLResponse)
+@app.post("/register/", response_class=RedirectResponse)
 def register(email: str = Form(...), password: str = Form(...)):
     try:
         user_manager.register(email, password)
         redirect_url = f"/register_confirmation"
-        response = RedirectResponse(url=redirect_url)
-        response.set_cookie(key="email", value=email)
-        return response
+        return session_handler.get_cookied_redirect(url=redirect_url, value=email)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
@@ -73,7 +88,10 @@ def listings(request: Request):
     listings = listing_manager.get_listings()
     return templates.TemplateResponse("listings.html", {"request": request, "listings": listings})
 
-
+@app.get("/listings/{id}", response_class=HTMLResponse)
+def listing(request: Request, id: int):
+    listing = listing_manager.get_listing(id)
+    return templates.TemplateResponse("listing.html", {"request": request, "listing": listing})
 
 @app.get("/listings/post", response_class=HTMLResponse)
 def post_listing(request: Request):
@@ -85,10 +103,6 @@ def post_listing(request: Request):
     listing_manager.create_listing(post.email, post.make, post.model, post.year, post.color,
                                    post.car_type, post.price, post.location)
     return RedirectResponse(url="/listings")
-    
-@app.get("/listing_confirmation", response_class=HTMLResponse)
-def listing_confirmation(request: Request):
-    return templates.TemplateResponse("listing_confirmation.html", {"request": request})
 
     
 ####### Listings #####################################

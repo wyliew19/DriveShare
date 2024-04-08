@@ -1,7 +1,8 @@
 from dataclasses import dataclass
 
 class Availability:
-    """Availability of the car"""
+    """Availability of the car
+    Availability is a string of days separated by commas"""
     def __init__(self, availability: str):
         self.days = availability
 
