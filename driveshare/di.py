@@ -8,9 +8,9 @@ from typing import Annotated
 
 oauth2_scheme = OAuth2WithCookie(tokenUrl="/token")
 
-def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]) -> User:
+def get_current_user(email: Annotated[str, Depends(oauth2_scheme)]) -> User:
     user_manager = UserMediator()
-    user = user_manager.get_user(token)
+    user = user_manager[email]
     if user is None:
         raise HTTPException(status_code=401, detail="Invalid token")
     return user

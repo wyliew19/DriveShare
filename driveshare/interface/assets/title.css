@@ -1,0 +1,28 @@
+header {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    text-align: center;
+}
+
+header h1 {
+    font-size: 2em;
+}
+
+.top-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px;
+    background-color: #f8f8f8;
+}
+
+.top-bar .user-name {
+    margin-left: 10px;
+}
+
+.top-bar .logout-button {
+    margin-right: 10px;
+    border: 1px solid #000;
+}

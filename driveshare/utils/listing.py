@@ -11,7 +11,7 @@ class ListingBuilder:
 
     def build_listing(self, seller_id: int, buyer_id: int, make: str, model: str, year: int,
                       color: str, car_type: str, price: float, city: str, state: str,
-                      days: str, id: int | None = None) -> Listing:
+                      start_date: str, end_date: str, id: int | None = None) -> Listing:
         """Build a car listing"""
         if id is not None:
             self.set_id(id)
@@ -20,7 +20,7 @@ class ListingBuilder:
             self.set_buyer_id(buyer_id)
         self.set_car(make, model, year, color, car_type, price)
         self.set_location(city, state)
-        self.set_availability(days)
+        self.set_availability(start_date, end_date)
         return self.get_listing()
     
     def set_id(self, id) -> None:
@@ -35,9 +35,9 @@ class ListingBuilder:
         """Set the buyer id for the listing"""
         self.listing.buyer_id = buyer_id
     
-    def set_car(self, make, model, year, color, car_type, price, location) -> None:
+    def set_car(self, make, model, year, color, car_type, price) -> None:
         """Set the car details for the listing"""
-        self.listing.car = Car(make, model, year, color, car_type, price, location)
+        self.listing.car = Car(make, model, year, color, car_type, price)
 
     def set_location(self, city, state) -> None:
         """Set the location for the listing"""
@@ -56,20 +56,25 @@ class ListingBuilder:
 
 class ListingMediator:
     """Class to manage car listing operations with database"""
+    _instance = None
 
-    def _tuple_to_listing(self, listing_tuple: tuple) -> Listing:
-        """Convert a tuple from the database to a Listing object"""
-        return self.builder.build_listing(listing_tuple[1], listing_tuple[2], listing_tuple[3], listing_tuple[4],
-                                          listing_tuple[5], listing_tuple[6], listing_tuple[7], listing_tuple[8],
-                                          listing_tuple[10], listing_tuple[11], listing_tuple[12], id=listing_tuple[0])
-
-
+    def __new__(cls, *args, **kwargs):
+        if not cls._instance:
+            cls._instance = super(ListingMediator, cls).__new__(cls, *args, **kwargs)
+            cls._instance.__init__()
+        return cls._instance
+    
     def __init__(self):
         self.db = DatabaseHandler()
         self.builder = ListingBuilder()
 
     def __getitem__(self, id):
         return self.get_listing(id)
+
+    def _tuple_to_listing(self, listing_tuple: tuple) -> Listing:
+        """Convert a tuple from the database to a Listing object"""
+        return self.builder.build_listing(*listing_tuple)
+
 
     def create_listing(self, email: str, make: str, model: str, year: str,
                        color: str, car_type: str, price: float, city: str, state: str,

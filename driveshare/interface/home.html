@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome to Home</title>
+    <link rel="stylesheet" href="{{ url_for('static', path='/assets/navbar.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', path='/assets/title.css') }}">
+</head>
+
+<body>
+    <div class="top-bar">
+        <a class="user-name"></a>
+        <a class="logout-button" href="/logout/">Logout</a>
+    </div>
+    <h1>DriveShare</h1>
+    <div class="navbar">
+        <a href="/home/">Home</a>
+        <a href="/my_listings/">My Listings</a>
+        <a href="/listings/post">Post a Listing</a>
+        <a href="/my_rentals/">My Rentals</a>
+    </div>
+    <div>
+        <h2>Welcome to Home </h2>
+    <div>
+        <p>Welcome to the landing page, please use the navigation bar to browse the website!</p>
+    </div>
+</body>
+
+</html>
+
+
+<script src="{{ url_for('static', path='/assets/scripts.js') }}">
+    let email = "{{ user.email }}";
+    let name = getName(email);
+    document.querySelector('h1').textContent = `Welcome to Home ${name}`; // put name into header
+    document.querySelector('.user-name').textContent = name; // put name into top bar
+</script>

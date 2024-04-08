@@ -1,7 +1,6 @@
 from typing import Optional
 from driveshare.utils.database import DatabaseHandler
 from driveshare.models.user import User
-from driveshare.security.hash import Hasher
 
 class UserMediator:
     """A singleton class for handling user registration and login"""
@@ -35,16 +34,15 @@ class UserMediator:
 
     def __init__(self):
         self.db = DatabaseHandler()
-        self.hasher = Hasher('sha256')
 
-    def get_user(self, email: str) -> Optional[User]:
+    def __getitem__(self, email: str) -> Optional[User]:
         return self.db.get_user(email)
 
-    def register(self, email: str, password: str) -> User:
-        return self.db.register(email, self.hasher.hash(password))
+    def register(self, email: str, password: str) -> Optional[User]:
+        return self.db.register(email, password)
 
     def login(self, email: str, password: str) -> Optional[User]:
-        return self.db.login(email, self.hasher.hash(password))
+        return self.db.login(email, password)
 
     def securityAnswers(self, secAnswer1: str, secAnswer2: str, secAnswer3: str):
         self.db.securityAnswers(secAnswer1, secAnswer2, secAnswer3)
