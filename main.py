@@ -6,6 +6,7 @@ from driveshare.utils.user import UserMediator
 from driveshare.utils.listing import ListingMediator
 from driveshare.models.basemodels import ListingPost
 from driveshare.security.cookie import SessionHandler
+from driveshare.security.payment import PaymentProxy
 
 # Create a FastAPI instance with session middleware and Jinja2 templates
 app = FastAPI()
@@ -50,6 +51,7 @@ def logout(request: Request):
     return RedirectResponse(url="/")
 
 ####### Payment ####################################
+
 @app.get("/payment/auth", response_class=HTMLResponse)
 def authorize(request: Request):
     return templates.TemplateResponse("authorize.html", {"request": request})
@@ -58,9 +60,19 @@ def authorize(request: Request):
 def payment(request: Request, password: str = Form(...)):
     proxy = PaymentProxy(session_handler.get_cookie(request))
     return proxy.authorize(password)
+
+@app.get("/payment/", response_class=HTMLResponse)
+def payment(request: Request):
+    return templates.TemplateResponse("payment.html", {"request": request})
+
+@app.get("/payment_confirmation/")
+def payment_confirmation(request: Request):
+    return templates.TemplateResponse("payment_confirmation.html", {"request": request})
+
 ####### Payment ####################################
 
 ####### Registration ###############################
+
 @app.post("/register/", response_class=RedirectResponse)
 def register(email: str = Form(...), password: str = Form(...)):
     try:
@@ -79,6 +91,7 @@ def handle_registration_confirmation(request: Request):
 @app.get("/home_page/", response_class=HTMLResponse)
 def handle_home_page(request: Request):
     return templates.TemplateResponse("home.html", {"request": request})
+
 ####### Registration ################################
 
 ####### Listings #####################################
