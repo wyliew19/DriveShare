@@ -44,6 +44,11 @@ class UserMediator:
     def login(self, email: str, password: str) -> Optional[User]:
         return self.db.login(email, password)
 
-    def securityAnswers(self, secAnswer1: str, secAnswer2: str, secAnswer3: str):
-        self.db.securityAnswers(secAnswer1, secAnswer2, secAnswer3)
+    def securityAnswers(self, id: int, secAnswer1: str, secAnswer2: str, secAnswer3: str):
+        self.db.securityAnswers(id, secAnswer1, secAnswer2, secAnswer3)
 
+    def get_security_answers(self, email: str):
+        return self.db.get_security_answers(email)
+    
+    def new_password(self, email: str, password: str):
+        self.db.new_password(email, password)

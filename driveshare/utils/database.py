@@ -97,6 +97,22 @@ class DatabaseHandler:
                 return None
             else:
                 raise e
+            
+    def get_security_answers(self, email: str) -> tuple:
+        conn = sqlite3.connect(self.database_name)
+        cursor = conn.cursor()
+        cursor.execute('''SELECT security_answer1, security_answer2, security_answer3 FROM users WHERE email = ?''', (email,))
+        answers = cursor.fetchone()
+        conn.close()
+        return answers
+    
+    def new_password(self, email: str, password: str):
+        password = self.hasher.hash(password)
+        conn = sqlite3.connect(self.database_name)
+        cursor = conn.cursor()
+        cursor.execute('''UPDATE users SET password = ? WHERE email = ?''', (password, email))
+        conn.commit()
+        conn.close()
 
     def login(self, email: str, password: str) -> Optional[User]:
         password = self.hasher.hash(password)
@@ -109,12 +125,14 @@ class DatabaseHandler:
             return User(id[0], email)
         return None
     
-    def securityAnswers(self, secAnswer1: str, secAnswer2: str, secAnswer3: str):
+    def securityAnswers(self, id: int, secAnswer1: str, secAnswer2: str, secAnswer3: str):
         conn = sqlite3.connect(self.database_name)
         cursor = conn.cursor()
         try:
-            cursor.execute('''INSERT INTO users (security_answer1, security_answer2, security_answer3)
-                              VALUES (?, ?, ?)''', (secAnswer1, secAnswer2, secAnswer3))
+            cursor.execute('''UPDATE users SET security_answer1 = ?, 
+                              security_answer2 = ?, 
+                              security_answer3 = ? WHERE id = ?''',
+                              (secAnswer1, secAnswer2, secAnswer3, id))
             conn.commit()
             print("Successfully registered answers")
         finally:
@@ -172,6 +190,14 @@ class DatabaseHandler:
         listing = cursor.fetchone()
         conn.close()
         return listing
+
+    def get_purchase_history(self, id: int) -> list[tuple]:
+        conn = sqlite3.connect(self.database_name)
+        cursor = conn.cursor()
+        cursor.execute('''SELECT * FROM listings WHERE buyer_id = ?''', (id,))
+        listings = cursor.fetchall()
+        conn.close()
+        return listings
     
     def purchase_listing(self, listing_id: int, email: str):
         buyer_id = self.get_id(email)

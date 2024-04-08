@@ -30,6 +30,12 @@ class ListingPost:
     start_date: str = Form(...)
     end_date: str = Form(...)
 
+@dataclass
+class SecurityQuestionForm:
+    security_answer1: str = Form(...)
+    security_answer2: str = Form(...)
+    security_answer3: str = Form(...)
+
 def as_dict(dataclass_instance) -> dict[str, str]:
     dict_instance = asdict(dataclass_instance)
     for key, value in dict_instance.items():

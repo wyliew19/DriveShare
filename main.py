@@ -10,9 +10,10 @@ from fastapi.security import OAuth2PasswordRequestForm
 
 from driveshare.utils.user import UserMediator
 from driveshare.utils.listing import ListingMediator
-from driveshare.models.posts import ListingPost, FilterSettings, as_dict
+from driveshare.models.posts import ListingPost, FilterSettings, SecurityQuestionForm, as_dict
 from driveshare.models.user import User
 from driveshare.security.payment import PaymentProxy
+from driveshare.security.cor import SecurityQuestion1Handler, SecurityQuestion2Handler, SecurityQuestion3Handler
 from driveshare.di import get_current_user, get_user_manager, get_listing_manager
 
 # Create a FastAPI instance and mount static files
@@ -100,6 +101,71 @@ def handle_registration_confirmation(request: Request):
     return templates.TemplateResponse("registration_confirmation.html", {"request": request})
 
 ####### Registration ################################
+
+####### Security Questions ###########################
+
+@app.get("/securityQuestions", response_class=HTMLResponse)
+def handle_security_questionPage(request: Request):
+    return templates.TemplateResponse("security_questions.html", {"request": request})
+
+@app.post("/securityQuestions")
+async def handle_security_questions(answers: Annotated[SecurityQuestionForm, Depends()],
+                                    user_manager: Annotated[UserMediator, Depends(get_user_manager)], user = Depends(get_current_user)):
+    try:
+        user_manager.securityAnswers(user.id, answers.security_answer1, answers.security_answer2, answers.security_answer3)
+        redirect_url = f"/register_confirmation/"
+        return RedirectResponse(url=redirect_url)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+####### Security Questions ###########################
+
+######## Password Recovery ##########################
+
+@app.get("/password_recovery", response_class=HTMLResponse)
+def password_recovery(request: Request):
+    return templates.TemplateResponse("password_recovery.html", {"request": request})
+
+@app.post("/password_recovery") 
+def password_recovery(answers: Annotated[SecurityQuestionForm, Depends()], email: str = Form(...)):
+
+    # Create the chain of responsibility
+    handler1 = SecurityQuestion1Handler()
+    handler2 = SecurityQuestion2Handler(handler1)
+    handler3 = SecurityQuestion3Handler(handler2)
+
+    # Check the answers
+    answers = [answers.security_answer1, answers.security_answer2, answers.security_answer3]
+    for i, answer in enumerate(answers):
+        if not handler3.handle(email, answer):
+            redirect_url = f"/password_recovery_confirmation/"
+            redirect = RedirectResponse(url=redirect_url)
+            redirect.set_cookie(key="email", value=email)
+            return redirect
+
+@app.post("/password_recovery_confirmation/", response_class=HTMLResponse)
+def password_recovery_confirmation(request: Request):
+    return templates.TemplateResponse("password_recovery_confirmation.html", {"request": request})
+
+@app.get("/new_password/", response_class=RedirectResponse)
+async def new_password(request: Request, user_manager: Annotated[UserMediator, Depends(get_user_manager)],
+                       password: str = Form(...)):
+    try:
+        email = request.cookies.get("email")
+        user_manager.new_password(email, password)
+        redirect_url = f"/login_page"
+        response = RedirectResponse(url=redirect_url)
+        response.delete_cookie("email")
+        return response
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    
+######## Password Recovery ##########################
+
 
 ####### Listings #####################################
 
