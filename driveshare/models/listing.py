@@ -1,16 +1,12 @@
 from dataclasses import dataclass
 
+@dataclass
 class Availability:
-    """Availability of the car
-    Availability is a string of days separated by commas"""
-    def __init__(self, availability: str):
-        self.days = availability
-
-    def as_list(self):
-        return self.days.split(',')
-    
-    def __str__(self):
-        return self.days
+    """Availability of the listing"""
+    start_date: str = None
+    """Start date of availability"""
+    end_date: str = None
+    """End date of availability"""
 
 @dataclass
 class Car:

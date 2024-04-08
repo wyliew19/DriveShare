@@ -47,13 +47,13 @@ class DatabaseHandler:
         conn.commit()
         conn.close()
 
-    def get_id(self, email: str) -> int:
+    def get_user(self, email: str) -> User:
         conn = sqlite3.connect(self.database_name)
         cursor = conn.cursor()
-        cursor.execute('''SELECT id FROM users WHERE email = ?''', (email,))
-        id = cursor.fetchone()[0]
+        cursor.execute('''SELECT * FROM users WHERE email = ?''', (email,))
+        user = cursor.fetchone()
         conn.close()
-        return id
+        return User(user[0], user[1])
 
     def register(self, email: str, password: str) -> User:
         conn = sqlite3.connect(self.database_name)
@@ -64,12 +64,14 @@ class DatabaseHandler:
             conn.commit()
             print("User registered successfully")
             cursor.execute('''SELECT id FROM users WHERE email = ?''', (email,))
-            return User(cursor.fetchone()[0], email, password)
+            id = cursor.fetchone()[0]
+            conn.close()
+            return User(id, email)
         except sqlite3.IntegrityError as e:
             if "UNIQUE constraint failed: users.email" in str(e):
-                raise ValueError("Email already exists, please choose a different one")
+                return None
             else:
-                raise
+                raise e
 
     def login(self, email: str, password: str) -> Optional[User]:
         conn = sqlite3.connect(self.database_name)
@@ -78,7 +80,7 @@ class DatabaseHandler:
         id = cursor.fetchone()[0]
         conn.close()
         if id:
-            return User(id, email, password)
+            return User(id, email)
         return None
     
     def securityAnswers(self, secAnswer1: str, secAnswer2: str, secAnswer3: str):
@@ -156,3 +158,11 @@ class DatabaseHandler:
         password = cursor.fetchone()[0]
         conn.close()
         return password
+
+    def get_user_security_answers(self, email: str) -> tuple:
+        conn = sqlite3.connect(self.database_name)
+        cursor = conn.cursor()
+        cursor.execute('''SELECT security_answer1, security_answer2, security_answer3 FROM users WHERE email = ?''', (email,))
+        answers = cursor.fetchone()
+        conn.close()
+        return answers

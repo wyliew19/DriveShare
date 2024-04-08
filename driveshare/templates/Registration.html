@@ -86,11 +86,14 @@
     <div class="container">
         <h1>User Registration</h1>
         <form action="/register/" method="post">
-            <label for="email">Email:</label>
-            <input type="email" id="email" name="email" required>
+            <label for="username">Email:</label>
+            <input type="email" name="username" required>
+
             <label for="password">Password:</label>
-            <input type="password" id="password" name="password" required>
+            <input type="password" name="password" required>
+
             <button type="submit">Register</button>
+            
         </form>
         <div class="login-link">
             <p>Already have an account? <a href="/login_page/">Login here</a></p>
@@ -99,3 +102,22 @@
 </body>
 
 </html>
+
+<script>
+    const form = document.querySelector('form');
+    form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const formData = new FormData(form);
+        fetch('/register/', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => {
+            if (response.ok) {
+                window.location = '/register_confirmation/';
+            } else {
+                alert('Registration failed. Please try again.');
+            }
+        });
+    });
+</script>

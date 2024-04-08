@@ -43,9 +43,9 @@ class ListingBuilder:
         """Set the location for the listing"""
         self.listing.location = Location(city, state)
 
-    def set_availability(self, days) -> None:
+    def set_availability(self, start_date, end_date) -> None:
         """Set the availability for the listing"""
-        self.listing.availability = Availability(days)
+        self.listing.availability = Availability(start_date, end_date)
 
     def get_listing(self) -> Listing:
         """Return the car listing"""

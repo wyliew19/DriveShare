@@ -1,26 +1,29 @@
-from fastapi.responses import RedirectResponse
+from fastapi import HTTPException
+from fastapi.security import OAuth2
+from fastapi.openapi.models import OAuthFlows
+from fastapi.security.utils import get_authorization_scheme_param
+from fastapi import Request
 
-class SessionHandler:
-    _instance = None
+# Thank you to https://github.com/tiangolo/fastapi/issues/796#issuecomment-566243767
+# for the idea to subclass OAuth2 and add a cookie parameter
 
-    def __new__(cls, *args, **kwargs):
-        if not cls._instance: 
-            cls._instance = super(SessionHandler, cls).__new__(cls, *args, **kwargs)
-            cls._instance.__init__() 
-        return cls._instance
+class OAuth2WithCookie(OAuth2):
+    def __init__(self, tokenUrl: str, scheme_name: str = None, scopes: dict = None, auto_error: bool = True):
+        if not scopes:
+            scopes = {}
+        flows = OAuthFlows(
+            password={
+                "tokenUrl": tokenUrl,
+                "scopes": scopes,
+            }
+        )
+        super().__init__(scheme_name=scheme_name, flows=flows, auto_error=auto_error)
 
-    def __init__(self):
-        self.secret_key = "n688OMzRj1RkMeQuvo9P92bWO6eYEYXU"
-        self.sessions = []
-    
-    def get_cookied_redirect(self, url: str, value: str) -> RedirectResponse:
-        response = RedirectResponse(url=url)
-        response.set_cookie(key=self.secret_key, value=value)
-        self.sessions.append(value)
-        return response
-    
-    def get_cookie(self, request) -> str:
-        return request.cookies.get(self.secret_key)
-
-    def remove_session(self, value: str) -> None:
-        self.sessions.remove(value)
+    async def __call__(self, request: Request):
+        authorization: str = request.cookies.get("access_token")
+        scheme, param = get_authorization_scheme_param(authorization)
+        if not authorization or scheme.lower() != "bearer":
+            if self.auto_error:
+                raise HTTPException(status_code=401, detail="Not authenticated", headers={"WWW-Authenticate": "Bearer"})
+            return None
+        return param

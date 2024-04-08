@@ -27,3 +27,7 @@ class ListingPost(BaseModel):
     state: str = None
     city: str = None
     days: str = None
+
+class User(BaseModel):
+    id: int
+    email: str

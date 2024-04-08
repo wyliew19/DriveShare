@@ -35,14 +35,13 @@ class UserMediator:
 
     def __init__(self):
         self.db = DatabaseHandler()
-        self.hasher = Hasher()
+        self.hasher = Hasher('sha256')
 
-
-    def __getitem__(self, email: str):
-        return self.db.get_id(email)
+    def get_user(self, email: str) -> Optional[User]:
+        return self.db.get_user(email)
 
     def register(self, email: str, password: str) -> User:
-        self.db.register(email, self.hasher.hash(password))
+        return self.db.register(email, self.hasher.hash(password))
 
     def login(self, email: str, password: str) -> Optional[User]:
         return self.db.login(email, self.hasher.hash(password))
