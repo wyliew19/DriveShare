@@ -143,7 +143,7 @@ class ListingMediator(AbstractSubject):
         if rating:
             seller_id = self.get_listing(listing_id).seller_id
             seller_email = self.db.get_user_email(seller_id)
-            Observer(self.db.get_user_email(seller_email, self))
+            Observer(seller_email, self)
             self.db.thumbs_up(self.get_listing(listing_id).seller_id)
             self.notify(MessageType.RATING, seller_email, self.get_listing(listing_id))
         else:
