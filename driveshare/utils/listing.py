@@ -141,7 +141,11 @@ class ListingMediator(AbstractSubject):
     def rate_listing(self, listing_id: int, rating: bool):
         """Rate a listing"""
         if rating:
+            seller_id = self.get_listing(listing_id).seller_id
+            seller_email = self.db.get_user_email(seller_id)
+            Observer(self.db.get_user_email(seller_email, self))
             self.db.thumbs_up(self.get_listing(listing_id).seller_id)
+            self.notify(MessageType.RATING, seller_email, self.get_listing(listing_id))
         else:
             self.db.thumbs_down(self.get_listing(listing_id).seller_id)
 

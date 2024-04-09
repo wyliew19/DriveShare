@@ -146,13 +146,12 @@ class DatabaseHandler:
         conn.close()
 
     def login(self, email: str, password: str) -> Optional[User]:
-        password = self.hasher.hash(password)
         conn = sqlite3.connect(self.database_name)
         cursor = conn.cursor()
-        cursor.execute('''SELECT id, balance FROM users WHERE email = ? AND password = ?''', (email, password))
+        cursor.execute('''SELECT id, password, balance FROM users WHERE email = ?''', (email,))
         tup = cursor.fetchone()
         conn.close()
-        if tup:
+        if tup and self.hasher.verify(password, tup[1]):
             return User(tup[0], email, tup[1])
         return None
     
