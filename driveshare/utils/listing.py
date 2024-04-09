@@ -110,6 +110,18 @@ class ListingMediator:
         self.db.purchase_listing(listing_id, buyer_id)
         return (self.get_listing(listing_id).buyer_id == buyer_id)
 
+    def rate_listing(self, listing_id: int, rating: bool):
+        """Rate a listing"""
+        if rating:
+            self.db.thumbs_up(self.get_listing(listing_id).seller_id)
+        else:
+            self.db.thumbs_down(self.get_listing(listing_id).seller_id)
+
+    def get_rating(self, id: int) -> float:
+        """Get the rating of a user"""
+        return self.db.get_rating(id)
+
+
     def get_purchase_history(self, id: int) -> list[Listing]:
         """Get the purchase history of a user"""
         listings = self.db.get_purchase_history(id)

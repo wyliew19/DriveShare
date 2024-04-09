@@ -43,6 +43,12 @@ class UserMediator:
 
     def login(self, email: str, password: str) -> Optional[User]:
         return self.db.login(email, password)
+    
+    def get_balance(self, email: str) -> float:
+        return self.db.get_balance(email)
+
+    def add_balance(self, email: str, amount: float):
+        self.db.add_balance(email, amount)
 
     def securityAnswers(self, id: int, secAnswer1: str, secAnswer2: str, secAnswer3: str):
         self.db.securityAnswers(id, secAnswer1, secAnswer2, secAnswer3)

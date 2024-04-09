@@ -76,8 +76,8 @@ def payment(password: Annotated[str, Form(...)], days: Annotated[int, Form(...)]
             listing_manager: Annotated[ListingMediator, Depends(get_listing_manager)],
             listing_id: int, user = Depends(get_current_user)):
     proxy = PaymentProxy(user.email)
-    amount = listing_manager.get_listing(listing_id).price * days
-    return proxy.authorize(password, amount)
+    listing = listing_manager.get_listing(listing_id)
+    return proxy.authorize(password, listing, days)
 
 @app.get("/payment_confirmation")
 def payment_confirmation(request: Request, amount: str, user = Depends(get_current_user)):
@@ -114,7 +114,7 @@ async def handle_security_questions(answers: Annotated[SecurityQuestionForm, Dep
     try:
         user_manager.securityAnswers(user.id, answers.security_answer1, answers.security_answer2, answers.security_answer3)
         redirect_url = f"/register_confirmation/"
-        return RedirectResponse(url=redirect_url)
+        return {"status": "success"}
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
@@ -140,10 +140,10 @@ def password_recovery(answers: Annotated[SecurityQuestionForm, Depends()], email
     answers = [answers.security_answer1, answers.security_answer2, answers.security_answer3]
     for i, answer in enumerate(answers):
         if not handler3.handle(email, answer):
-            redirect_url = f"/password_recovery_confirmation/"
-            redirect = RedirectResponse(url=redirect_url)
-            redirect.set_cookie(key="email", value=email)
-            return redirect
+            raise HTTPException(status_code=400, detail="Incorrect answer")
+    response = RedirectResponse(url="/password_recovery_confirmation/")
+    response.set_cookie(key="email", value=email)
+    return response
 
 @app.post("/password_recovery_confirmation/", response_class=HTMLResponse)
 def password_recovery_confirmation(request: Request):
@@ -170,36 +170,56 @@ async def new_password(request: Request, user_manager: Annotated[UserMediator, D
 ####### Listings #####################################
 
 @app.get("/listings", response_class=HTMLResponse)
-def listings(request: Request, listing_manager: Annotated[ListingMediator, Depends(get_listing_manager)]):
+def listings(request: Request, listing_manager: Annotated[ListingMediator, Depends(get_listing_manager)],
+             user = Depends(get_current_user)):
     listings = listing_manager.get_listings()
-    return templates.TemplateResponse("listings.html", {"request": request, "listings": listings})
+    return templates.TemplateResponse("listings.html", {"request": request, "listings": listings, "user": user})
 
 @app.post("/listings", response_class=HTMLResponse)
-def filter_listings(request: Request, filters: Annotated[FilterSettings, Depends()], listing_manager: Annotated[ListingMediator, Depends(get_listing_manager)]):
+def filter_listings(request: Request, filters: Annotated[FilterSettings, Depends()], listing_manager: Annotated[ListingMediator, Depends(get_listing_manager)],
+                    user = Depends(get_current_user)):
     filters = as_dict(filters)
     listings = listing_manager.get_listings(filters=filters)
-    return templates.TemplateResponse("listings.html", {"request": request, "listings": listings})
+    return templates.TemplateResponse("listings.html", {"request": request, "listings": listings, "user": user})
 
 @app.get("/listings/{id}", response_class=HTMLResponse)
-def listing(request: Request, id: int, listing_manager: Annotated[ListingMediator, Depends(get_listing_manager)]):
+def listing(request: Request, id: int, listing_manager: Annotated[ListingMediator, Depends(get_listing_manager)],
+            user = Depends(get_current_user)):
     listing = listing_manager.get_listing(id)
-    return templates.TemplateResponse("listing.html", {"request": request, "listing": listing})
+    return templates.TemplateResponse("listing.html", {"request": request, "listing": listing,
+                                                       "user": user, "ratings": listing_manager.get_rating(id)})
 
 @app.get("/my_listings", response_class=HTMLResponse)
 def my_listings(request: Request, user: Annotated[User, Depends(get_current_user)], listing_manager: Annotated[ListingMediator, Depends(get_listing_manager)]):
-    listings = listing_manager.get_listings(user.id)
-    return templates.TemplateResponse("my_listings.html", {"request": request, "listings": listings})
+    listings = listing_manager.get_listings(id=user.id)
+    return templates.TemplateResponse("listings.html", {"request": request, "listings": listings, "user": user})
+
+@app.post("/my_listings", response_class=HTMLResponse)
+def filter_my_listings(request: Request, user: Annotated[User, Depends(get_current_user)], filters: Annotated[FilterSettings, Depends()],
+                       listing_manager: Annotated[ListingMediator, Depends(get_listing_manager)]):
+    filters = as_dict(filters)
+    listings = listing_manager.get_listings(id=user.id, filters=filters)
+    return templates.TemplateResponse("listings.html", {"request": request, "listings": listings, "user": user})
 
 @app.get("/listings/post", response_class=HTMLResponse)
 def post_listing(request: Request):
     return templates.TemplateResponse("post_listing.html", {"request": request})
 
 @app.post("/listings/post")
-def post_listing(request: Request, listing_manager: Annotated[ListingMediator, Depends(get_listing_manager)]):
-    post = ListingPost(**request.form())
-    listing_manager.create_listing(post.email, post.make, post.model, post.year, post.color,
-                                   post.car_type, post.price, post.location)
-    return RedirectResponse(url="/listings")
+def post_listing(listing_manager: Annotated[ListingMediator, Depends(get_listing_manager)],
+                 post: Annotated[ListingPost, Depends()], user = Depends(get_current_user)):
+    listing_manager.create_listing(user.email, post.make, post.model, post.year, post.color, post.car_type,
+                                   post.price, post.city, post.state, post.start_date, post.end_date)
+    return {"status": "success"}
 
     
 ####### Listings #####################################
+
+####### Add balance ##################################
+@app.post("/add_balance")
+def add_balance(amount: Annotated[float, Form(...)], user_manager: Annotated[UserMediator, Depends(get_user_manager)], user = Depends(get_current_user)):
+    start_balance = user_manager.get_balance(user.email)
+    user_manager.add_balance(user.email, amount)
+    if start_balance == user_manager.get_balance(user.email) - amount:
+        return {"status": "success"}
+    return {"status": "failure"}

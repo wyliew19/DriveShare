@@ -7,6 +7,9 @@ class SecurityQuestionHandler:
         self.db_handler = DatabaseHandler()
 
     def handle(self, email: str, answer: str, question_number: int) -> bool:
+        answers = self.db_handler.get_security_answers(email)
+        if answers is None:
+            return False
         correct_answer = self.db_handler.get_security_answers(email)[question_number]
         if answer != correct_answer:
             return False

@@ -59,8 +59,9 @@
 </head>
 
 <body>
+    {% include 'title.html' %}
     <div class="container">
-        <h1>Payment Page</h1>
+        <h2>Payment Page</h2>
         <form action="/payment/auth?listing_id={{ listing.id }}" method="post">
             <div class="form-group">
                 <label for="password">Password:</label>

@@ -5,20 +5,19 @@ from fastapi import Form
 class FilterSettings:
     """Filter settings for listings
     Dataclass for filtering listings"""
-    make: str = Form(...)
-    model: str = Form(...)
-    year: int = Form(...)
-    color: str = Form(...)
-    car_type: str = Form(...)
-    price: float = Form(...)
-    state: str = Form(...)
-    city: str = Form(...)
-    start_date: str = Form(...)
-    end_date: str = Form(...)
+    make: str = Form(None)
+    model: str = Form(None)
+    year: int = Form(None)
+    color: str = Form(None)
+    type: str = Form(None)
+    price: float = Form(None)
+    state: str = Form(None)
+    city: str = Form(None)
+    start_date: str = Form(None)
+    end_date: str = Form(None)
 
 @dataclass
 class ListingPost:
-    email: str = Form(...)
     make: str = Form(...)
     model: str = Form(...)
     year: int = Form(...)
@@ -37,9 +36,4 @@ class SecurityQuestionForm:
     security_answer3: str = Form(...)
 
 def as_dict(dataclass_instance) -> dict[str, str]:
-    dict_instance = asdict(dataclass_instance)
-    for key, value in dict_instance.items():
-        if value is None:
-            del dict_instance[key]
-        dict_instance[key] = str(value)
-    return dict_instance
+    return asdict(dataclass_instance)

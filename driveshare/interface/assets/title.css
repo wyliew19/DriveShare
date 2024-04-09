@@ -10,12 +10,18 @@ header h1 {
     font-size: 2em;
 }
 
+.title {
+    text-align: center;
+    font-size: 3em;
+}
+
 .top-bar {
     display: flex;
     justify-content: space-between;
     align-items: center;
     padding: 10px;
-    background-color: #f8f8f8;
+    background-color: #cfd2d3;
+    border-radius: 5px;
 }
 
 .top-bar .user-name {
@@ -23,6 +29,19 @@ header h1 {
 }
 
 .top-bar .logout-button {
-    margin-right: 10px;
-    border: 1px solid #000;
+    width: 10%;
+    padding: 4px;
+    margin-top: 5px;
+    border: 1px solid #0052aa;
+    background-color: #007bff;
+    border-radius: 5px;
+    box-shadow: none;
+    transition: border-color 0.3s ease;
+    color: #fff;
+    text-align: center;
+    text-decoration: none;
+}
+
+.top-bar .logout-button:hover {
+    background-color: #0052aa;
 }

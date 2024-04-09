@@ -2,7 +2,6 @@ from fastapi import HTTPException
 from fastapi.responses import RedirectResponse
 from driveshare.utils.listing import Listing
 from driveshare.utils.database import DatabaseHandler
-from driveshare.security.hash import Hasher
 
 class Payment:
     def __init__(self, email: str):
@@ -18,11 +17,13 @@ class PaymentProxy:
 
     def authorize(self, password: str, listing: Listing, days: int) -> RedirectResponse:
         db = DatabaseHandler()
-        hasher = Hasher('sha256')
-        password_hash = db.get_user_password(self.email)
-        email = db.get_user_email(listing.seller_id)
+        seller_email = db.get_user_email(listing.seller_id)
         amount = listing.car.price * days
-        if hasher.verify(password, password_hash):
+        if db.get_balance(self.email) < amount:
+            raise HTTPException(status_code=400, detail="Insufficient funds")
+        if db.verify_password(self.email, password):
+            db.add_balance(seller_email, amount)
+            db.purchase_listing(self.email, listing.id, days)
             self.payment.pay(amount)
             return RedirectResponse(url=f"/payment_confirmation$amount={amount:.2f}")
         else:

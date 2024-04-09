@@ -18,7 +18,7 @@ class DatabaseHandler:
         self.database_name = database_name
         self.hasher = Hasher('sha256')
         self._ensure_db()
-        if not self.get_user('johndoe@yahoo.com'):
+        if not self.get_user('admin@driveshare.com'):
             self._init_users()
         if not self.get_listings():
             self._dummy_listings()
@@ -33,7 +33,10 @@ class DatabaseHandler:
                             password TEXT,
                             security_answer1 TEXT,
                             security_answer2 TEXT,
-                            security_answer3 TEXT
+                            security_answer3 TEXT,
+                            balance DECIMAL(10, 2) DEFAULT 0.0,
+                            thumbs_up INTEGER DEFAULT 0,
+                            thumbs_down INTEGER DEFAULT 0
                         )''')
         conn.commit()
         cursor.execute('''CREATE TABLE IF NOT EXISTS listings (
@@ -49,23 +52,36 @@ class DatabaseHandler:
                             city TEXT,
                             state TEXT,
                             start_date TEXT,
-                            end_date TEXT
+                            end_date TEXT,
+                            FOREIGN KEY (seller_id) REFERENCES users(id),
+                            FOREIGN KEY (buyer_id) REFERENCES users(id)
                         )''')
         conn.commit()
         conn.close()
 
     def _init_users(self):
-        self.register('johndoe@yahoo.com', 'password')
-        self.register('wyliew@umich.edu', 'password1')
-        self.register('leodiaz@umich.edu', 'password2')
+        self.register('admin@driveshare.com', 'admin')
+        for i in range(1, 10):
+            self.register(f'user{i}@driveshare.com', f'password{i}')
+            self.securityAnswers(i+1, 'answer1', 'answer2', 'answer3')
 
     def _dummy_listings(self):
         conn = sqlite3.connect(self.database_name)
         cursor = conn.cursor()
         cursor.execute('''INSERT INTO listings (seller_id, make, model, year, color, type, price, state, city, start_date, end_date)
-                          VALUES (1, 'Toyota', 'Corolla', 2020, 'Black', 'Sedan', 50.0, 'California', 'Los Angeles', '2024-04-01', '2024-04-10'),
-                                 (1, 'Honda', 'Accord', 2018, 'Red', 'Sedan', 60.0, 'California', 'San Francisco', '2024-04-01', '2024-04-10'),
-                                 (2, 'Ford', 'Mustang', 2019, 'Blue', 'Coupe', 70.0, 'Texas', 'Houston', '2024-04-01', '2024-04-10')''')
+                     VALUES (1, 'Toyota', 'Corolla', 2020, 'Black', 'Sedan', 50.0, 'Michigan', 'Detroit', '2024-04-01', '2024-04-10'),
+                            (1, 'Honda', 'Accord', 2018, 'Red', 'Sedan', 60.0, 'Michigan', 'Utica', '2024-04-05', '2024-04-15'),
+                            (2, 'Ford', 'Mustang', 2019, 'Blue', 'Coupe', 70.0, 'Michigan', 'Dearborn', '2024-04-10', '2024-04-20'),
+                            (4, 'BMW', '3 Series', 2019, 'White', 'Sedan', 90.0, 'Michigan', 'Lansing', '2024-04-15', '2024-04-25'),
+                            (5, 'Audi', 'A4', 2020, 'Black', 'Sedan', 100.0, 'Michigan', 'Flint', '2024-04-20', '2024-04-30'),
+                            (6, 'Mercedes', 'C Class', 2021, 'Silver', 'Sedan', 110.0, 'Michigan', 'Grand Rapids', '2024-04-25', '2024-05-05'),
+                            (7, 'Tesla', 'Model 3', 2022, 'Red', 'Sedan', 120.0, 'Michigan', 'Kalamazoo', '2024-05-01', '2024-05-11'),
+                            (8, 'Subaru', 'Impreza', 2019, 'Gray', 'Sedan', 80.0, 'Michigan', 'Warren', '2024-05-05', '2024-05-15'),
+                            (9, 'Jeep', 'Wrangler', 2021, 'Black', 'SUV', 85.0, 'Michigan', 'Detroit', '2024-05-10', '2024-05-20'),
+                            (10, 'Ford', 'F-150', 2020, 'Red', 'Truck', 90.0, 'Michigan', 'Utica', '2024-05-15', '2024-05-25'),
+                            (4, 'Chevrolet', 'Silverado', 2019, 'Blue', 'Truck', 95.0, 'Michigan', 'Dearborn', '2024-05-20', '2024-05-30'),
+                            (6, 'Toyota', '4Runner', 2022, 'White', 'SUV', 100.0, 'Michigan', 'Ann Arbor', '2024-05-25', '2024-06-05'),
+                            (5, 'BMW', 'Z4', 2021, 'Black', 'Convertible', 105.0, 'Michigan', 'Lansing', '2024-06-01', '2024-06-11')''')
         conn.commit()
         conn.close()
 
@@ -113,6 +129,13 @@ class DatabaseHandler:
         answers = cursor.fetchone()
         conn.close()
         return answers
+
+    def add_balance(self, email: str, amount: float):
+        conn = sqlite3.connect(self.database_name)
+        cursor = conn.cursor()
+        cursor.execute('''UPDATE users SET balance = balance + ? WHERE email = ?''', (amount, email))
+        conn.commit()
+        conn.close()
     
     def new_password(self, email: str, password: str):
         password = self.hasher.hash(password)
@@ -176,8 +199,14 @@ class DatabaseHandler:
             params.append(id)
 
         if filters is not None:
+            filter_queries = {'make': 'make = ?', 'model': 'model = ?', 'year': 'year = ?',
+                              'color': 'color = ?', 'type': 'type = ?', 'price': 'price <= ?',
+                              'state': 'state = ?', 'city': 'city LIKE ?', 'start_date': 'start_date >= ?',
+                              'end_date': 'end_date <= ?'}
             for key, value in filters.items():
-                query += f'{key} = ? AND '
+                if value is None:
+                    continue
+                query += filter_queries[key] + ' AND '
                 params.append(value)
 
         # Remove the last ' AND ' from the query
@@ -190,6 +219,28 @@ class DatabaseHandler:
         listings = cursor.fetchall()
         conn.close()
         return listings
+
+    def thumbs_up(self, id: int):
+        conn = sqlite3.connect(self.database_name)
+        cursor = conn.cursor()
+        cursor.execute('''UPDATE users SET thumbs_up = thumbs_up + 1 WHERE id = ?''', (id,))
+        conn.commit()
+        conn.close()
+
+    def thumbs_down(self, id: int):
+        conn = sqlite3.connect(self.database_name)
+        cursor = conn.cursor()
+        cursor.execute('''UPDATE users SET thumbs_down = thumbs_down + 1 WHERE id = ?''', (id,))
+        conn.commit()
+        conn.close()
+
+    def get_rating(self, id: int) -> tuple:
+        conn = sqlite3.connect(self.database_name)
+        cursor = conn.cursor()
+        cursor.execute('''SELECT thumbs_up, thumbs_down FROM users WHERE id = ?''', (id,))
+        rating = cursor.fetchone()
+        conn.close()
+        return rating
     
     def get_listing(self, listing_id: int) -> tuple:
         conn = sqlite3.connect(self.database_name)
@@ -207,21 +258,28 @@ class DatabaseHandler:
         conn.close()
         return listings
     
-    def purchase_listing(self, listing_id: int, email: str):
+    def purchase_listing(self, listing_id: int, email: str, days: int) -> bool:
         buyer_id = self.get_id(email)
         conn = sqlite3.connect(self.database_name)
         cursor = conn.cursor()
         cursor.execute('''UPDATE listings SET buyer_id = ? WHERE id = ?''', (buyer_id, listing_id))
         conn.commit()
+        cursor.execute('''SELECT balance FROM users WHERE email = ?''', (email,))
+        balance = cursor.fetchone()[0]
+        cursor.execute('''SELECT price FROM listings WHERE id = ?''', (listing_id,))
+        price = cursor.fetchone()[0]
+        if balance < price * days:
+            return False
+        cursor.execute('''UPDATE users SET balance = balance - ? WHERE email = ?''', (price * days, email))
         conn.close()
 
-    def get_user_password(self, email: str) -> str:
+    def get_balance(self, email: str) -> float:
         conn = sqlite3.connect(self.database_name)
         cursor = conn.cursor()
-        cursor.execute('''SELECT password FROM users WHERE email = ?''', (email,))
-        password = cursor.fetchone()[0]
+        cursor.execute('''SELECT balance FROM users WHERE email = ?''', (email,))
+        balance = cursor.fetchone()[0]
         conn.close()
-        return password
+        return balance
 
     def get_user_security_answers(self, email: str) -> tuple:
         conn = sqlite3.connect(self.database_name)
@@ -230,3 +288,12 @@ class DatabaseHandler:
         answers = cursor.fetchone()
         conn.close()
         return answers
+
+    def verify_password(self, email: str, password: str) -> bool:
+        conn = sqlite3.connect(self.database_name)
+        cursor = conn.cursor()
+        cursor.execute('''SELECT password FROM users WHERE email = ?''', (email,))
+        correct_password = cursor.fetchone()[0]
+        conn.close()
+        return self.hasher.verify(password, correct_password)
+    

@@ -3,45 +3,90 @@
 <head>
     <meta charset="UTF-8">
     <title>DriveShare Listings</title>
-    <!-- Add your CSS and JS files here -->
-    <style>
-        .content {
-            display: flex;
-        }
-        .listings {
-            flex: 70%;
-        }
-        .filters {
-            flex: 30%;
-        }
-    </style>
+    <link rel="stylesheet" href="{{ url_for('static', path='/assets/navbar.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', path='/assets/title.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', path='/assets/browse.css') }}">
 </head>
 <body>
-    <h1>DriveShare Listings</h1>
-    <div class = "nav">
-        <a href="/home/">Home</a>
-        <a href="/my_listings/">My Listings</a>
-        <a href="/listings/post">Post a Listing</a>
-        <a href="/my_rentals/">My Rentals</a>
-        <a href="/logout/">Logout</a>
-    </div>
+    {% include 'title.html' %}
     <div class="content">
         <div class="listings">
             {% if listings %}
                 {% for listing in listings %}
-                    <div>
-                        <p>{{ listing.make }} {{ listing.model }}: {{ listing.price }}</p>
+                <div class="listing" onclick="window.location='/listings/{{listing.id}}'">
+                    <div class="item-container">
+                        <div class="item">
+                            <label>Make:</label>
+                        </div>
+                        <div class="item">
+                            <span>{{listing.car.make}}</span>
+                        </div>
                     </div>
+                    <div class="item-container">
+                        <div class="item">
+                            <label>Model:</label> 
+                        </div>
+                        <div class="item">
+                            <span>{{listing.car.model}}</span>
+                        </div>
+                    </div>
+                    <div class="item-container"> 
+                        <div class="item">
+                            <label>Year:</label> 
+                        </div>
+                        <div class="item">
+                            <span>{{listing.car.year}}</span>
+                        </div>
+                    </div>
+                    <div class="item-container"> 
+                        <div class="item">
+                            <label>Color:</label> 
+                        </div>
+                        <div class="item">
+                            <span>{{listing.car.color}}</span>
+                        </div>
+                    </div>
+                    <div class="item-container"> 
+                        <div class="item">
+                            <label>Price:</label> 
+                        </div>
+                        <div class="item">
+                            <span>${{listing.car.price}} per day</span>
+                        </div>
+                    </div>
+                    <div class="item-container">
+                        <div class="item">
+                            <label>Type:</label> 
+                        </div>
+                        <div class="item">
+                            <span>{{listing.car.car_type}}</span>
+                        </div>
+                    </div>
+                    <div class="item-container">
+                        <div class="item">
+                            <label>Location:</label>
+                        </div>
+                        <div class="item">
+                            <span>{{listing.location.city}}, {{listing.location.state}}</span>
+                        </div>
+                    </div>
+                    <div class="item-container">
+                        <div class="item">
+                            <label>Start Date: </label> <span class="availability">{{listing.availability.start_date}}</span>
+                        </div>
+                        <div class="item">
+                            <label>End Date: </label> <span class="availability">{{listing.availability.end_date}}</span>
+                        </div>
+                    </div>
+                </div>
                 {% endfor %}
             {% else %}
                 <p>No listings found</p>
             {% endif %}
         </div>
-        <div class="filters">
+        <div class="filter-form">
             <form method="post" id="filters">
                 <h2>Add Filters</h2>
-                <label for="email">Email:</label>
-                <input type="email" name="email">
                 <label for="make">Make:</label>
                 <input type="text" name="make">
                 <label for="model">Model:</label>
@@ -50,19 +95,22 @@
                 <input type="number" name="year">
                 <label for="color">Color:</label>
                 <select name="color">
-                    <option value="black">Black</option>
-                    <option value="white">White</option>
-                    <option value="red">Red</option>
-                    <option value="blue">Blue</option>
-                    <option value="silver">Silver</option>
+                    <option value="">Select a color</option>
+                    <option value="Black">Black</option>
+                    <option value="White">White</option>
+                    <option value="Yellow">Yellow</option>
+                    <option value="Red">Red</option>
+                    <option value="Blue">Blue</option>
+                    <option value="Silver">Silver</option>
                 </select>
-                <label for="car_type">Car Type:</label>
-                <select name="car_type">
-                    <option value="sedan">Sedan</option>
-                    <option value="suv">SUV</option>
-                    <option value="truck">Truck</option>
-                    <option value="coupe">Coupe</option>
-                    <option value="convertible">Convertible</option>
+                <label for="type">Car Type:</label>
+                <select name="type">
+                    <option value="">Select a car type</option>
+                    <option value="Sedan">Sedan</option>
+                    <option value="SUV">SUV</option>
+                    <option value="Truck">Truck</option>
+                    <option value="Coupe">Coupe</option>
+                    <option value="Convertible">Convertible</option>
                 </select>
                 <label for="price">Price:</label>
                 <input type="number" step="0.01" name="price">
@@ -70,11 +118,13 @@
                 <input type="text" name="state">
                 <label for="city">City:</label>
                 <input type="text" name="city">
-                <label for="days">Days:</label>
-                <input type="text" name="days">
+                <label for="start_date">Start Date:</label>
+                <input type="date" name="start_date">
+                <label for="end_date">End Date:</label>
+                <input type="date" name="end_date">
                 <button type="submit">Apply Filters</button>
             </form>
         </div>
     </div>
 </body>
-</html>x
+</html>
