@@ -251,3 +251,9 @@ def add_balance(amount: Annotated[float, Form(...)], user_manager: Annotated[Use
     if start_balance == user_manager.get_balance(user.email) - amount:
         return {"status": "success"}
     return {"status": "failure"}
+
+####### Add balance ##################################
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)
