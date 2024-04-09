@@ -1,0 +1,75 @@
+/* General layout */
+.content {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 10px;
+}
+
+.listings {
+    width: 75%;
+    justify-self: center;
+    display: table;
+    border-collapse: collapse;
+    padding-bottom: 10px;
+}
+
+.listing {
+    display: table-row;
+    padding: 15px;
+    flex-wrap: nowrap;
+    border: 2px solid #ccc;
+    border-radius: 5px; 
+    border-collapse: separate;
+    border-spacing: 0 15px;
+}
+
+.listing .item-container {
+    text-align: center;
+    margin-left: auto;
+    margin-right: auto;
+    padding: 5px;
+    text-decoration: none;
+    flex: 1;
+    display: table-cell;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.listing .item {
+    text-align: center;
+    padding: 5px;
+    border-top: #ccc;
+    border-bottom: #ccc;
+}
+
+.listing label {
+    font-weight: bold;
+    font-size: large;
+}
+
+/* Filter form */
+.filter-form {
+    width: 20%;
+    padding: 5px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+}
+
+.filter-form input[type="text"], .filter-form input[type="number"], .filter-form input[type="date"], .filter-form select {
+    width: 100%;
+    margin-bottom: 10px;
+    box-sizing: border-box;
+}
+
+.filter-form input[type="submit"] {
+    width: 100%;
+    padding: 10px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    cursor: pointer;
+}
+
+.filter-form input[type="submit"]:hover {
+    background-color: #45a049;
+}

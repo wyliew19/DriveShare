@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome to Home</title>
+</head>
+
+<body>
+    {% include 'title.html' %}
+    <div>
+        <h2>Welcome to Home {{ user.email }}</h2>
+    </div>
+    <div>
+        <p>Welcome to the landing page, please use the navigation bar to browse the website!</p>
+    </div>
+    <form action="/add_balance" method="post">
+        <label for="amount">Add Balance:</label>
+        <input type="number" name="amount" step="0.01">
+        <button type="submit">Add Balance</button>
+</body>
+
+</html>
+
+<script>
+    const form = document.querySelector('form');
+    form.onsubmit = (e) => {
+        e.preventDefault();
+        const formData = new FormData(form);
+        fetch('/add_balance', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            alert(data.status);
+            location.reload();
+        })
+        .catch(error => {
+            console.error('Error:', error);
+        });
+    };
+</script>
