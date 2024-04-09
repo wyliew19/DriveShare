@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Single Listing</title>
+    <style>
+
+        .listing-container {
+            width: 100%;
+            min-height: 100%;
+            background-color: #f0f0f0;
+            padding-top: calc(5% + 60px);
+            padding-bottom: calc(5% + 60px);
+        }
+
+        .listing {
+            max-width: 600px;
+            margin: 0px auto;
+            padding: 20px;
+            border-radius: 5px;
+            background-color: #fff;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        h2 {
+            text-align: center;
+        }
+
+        p {
+            margin-top: 10px;
+            font-size: large;
+        }
+
+        form {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        label {
+            margin-top: 10px;
+        }
+
+        img {
+            width: 50px;
+            height: 50px;
+            margin-top: 5px;
+            border-radius: 5px;
+            box-shadow: none;
+            transition: border-color 0.3s ease;
+            padding: 10px;
+        }
+
+        button {
+            background-color: transparent;
+            border: none;
+        }
+        
+        button:hover {
+            background-color: #f0f0f0;
+            cursor: pointer;
+        }
+
+        .thumb-container {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            text-align: center;
+            padding: 0 10px;
+        }
+
+        .rating-container {
+            display: flex;
+            flex-direction: row;
+            justify-content: space-between;
+        }
+    </style>
+</head>
+<body>
+    {% include 'title.html' %}
+    <div class="listing-container">
+        <div class="listing">
+            <h2>{{ listing.car.make }} {{ listing.car.model }}</h2>
+            <p>Type: {{ listing.car.car_type }}</p>
+            <p>Location: {{ listing.location.city }}, {{ listing.location.state }}</p>
+            <p>Start Date: {{ listing.availability.start_date }}</p>
+            <p>End Date: {{ listing.availability.end_date }}</p>
+            <p>Seller: {{ seller_email }}</p>
+            {% if user.id == listing.buyer_id %}
+                <form id="rating">
+                    <label for="rating">Rate this rental:</label>
+                    <div class="rating-container">
+                        <div class="thumb-container">
+                            <button type="submit" formmethod="post" formaction="/rate_listing/{{ listing.id }}/?rating=1">
+                                <img src="{{ url_for('static', path='/assets/thumbs_up.png') }}">
+                            </button>
+                            <span>{{ ratings[0] }}</span>
+                        </div>
+                        <div class="thumb-container">
+                            <button type="submit" formmethod="post" formaction="/rate_listing/{{ listing.id }}/?rating=1">
+                                <img src="{{ url_for('static', path='/assets/thumbs_down.png') }}">
+                            </button>
+                            <span>{{ ratings[1] }}</span>
+                        </div>
+                    </div>
+                </form>
+            {% elif listing.buyer_id == None %}
+                {% if user.id != listing.seller_id %}
+                    <a href="/payment/auth/?listing_id={{ listing.id }}">Purchase this listing</a>
+                {% endif %}
+            {% endif %}
+        </div>
+    </div>
+</body>
+</html>
+
+<script>
+
+    const ratingForm = document.getElementById('rating');
+
+    ratingForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const rating = e.submitter.formAction.split('=')[1];
+        fetch(e.submitter.formAction, {
+            method: 'post',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ rating })
+        })
+        .then(response => response.json())
+        .then(data => {
+            alert(data.message);
+            location.reload();
+        })
+        .catch(error => {
+            console.error('Error:', error);
+        });
+    });
+
+</script>

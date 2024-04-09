@@ -35,8 +35,10 @@ class UserMediator:
     def __init__(self):
         self.db = DatabaseHandler()
 
-    def __getitem__(self, email: str) -> Optional[User]:
-        return self.db.get_user(email)
+    def __getitem__(self, key: str | int) -> Optional[User]:
+        if isinstance(key, str):
+            return self.db.get_user(key)
+        return self.db.get_user(self.db.get_user_email(key))
 
     def register(self, email: str, password: str) -> Optional[User]:
         return self.db.register(email, password)

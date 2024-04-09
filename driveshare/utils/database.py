@@ -88,12 +88,12 @@ class DatabaseHandler:
     def get_user(self, email: str) -> Optional[User]:
         conn = sqlite3.connect(self.database_name)
         cursor = conn.cursor()
-        cursor.execute('''SELECT * FROM users WHERE email = ?''', (email,))
+        cursor.execute('''SELECT id, email, balance FROM users WHERE email = ?''', (email,))
         user = cursor.fetchone()
         conn.close()
         if user is None:
             return None
-        return User(user[0], user[1])
+        return User(user[0], user[1], user[2])
 
     def get_user_email(self, id: int) -> str:
         conn = sqlite3.connect(self.database_name)
@@ -115,7 +115,7 @@ class DatabaseHandler:
             cursor.execute('''SELECT id FROM users WHERE email = ?''', (email,))
             id = cursor.fetchone()[0]
             conn.close()
-            return User(id, email)
+            return User(id, email, 0)
         except sqlite3.IntegrityError as e:
             if "UNIQUE constraint failed: users.email" in str(e):
                 return None
@@ -149,11 +149,11 @@ class DatabaseHandler:
         password = self.hasher.hash(password)
         conn = sqlite3.connect(self.database_name)
         cursor = conn.cursor()
-        cursor.execute('''SELECT id FROM users WHERE email = ? AND password = ?''', (email, password))
-        id = cursor.fetchone()
+        cursor.execute('''SELECT id, balance FROM users WHERE email = ? AND password = ?''', (email, password))
+        tup = cursor.fetchone()
         conn.close()
-        if id:
-            return User(id[0], email)
+        if tup:
+            return User(tup[0], email, tup[1])
         return None
     
     def securityAnswers(self, id: int, secAnswer1: str, secAnswer2: str, secAnswer3: str):
@@ -173,15 +173,15 @@ class DatabaseHandler:
         conn = sqlite3.connect(self.database_name)
         cursor = conn.cursor()
         cursor.execute('''INSERT INTO listings (seller_id, buyer_id, make, model, year, color, type, price, state, city, start_date, end_date)
-                          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)''', 
+                          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''', 
                           (listing.seller_id, listing.buyer_id, listing.car.make, listing.car.model, 
-                           listing.car.year, listing.car.color, listing.car.type, listing.car.price,
+                           listing.car.year, listing.car.color, listing.car.car_type, listing.car.price,
                            listing.location.state, listing.location.city, listing.availability.start_date,
                            listing.availability.end_date))
         conn.commit()
         conn.close()
 
-    def get_listings(self, id: int | None = None, filters: dict[str, str] | None = None) -> Optional[list[tuple]]:
+    def get_listings(self, id: int | None = None, filters: dict[str, str] | None = None, is_buyer: bool | None = False) -> Optional[list[tuple]]:
         """Get listings from the database   
         Args:
             id (int, optional): The ID of the seller. Defaults to None.
@@ -195,7 +195,10 @@ class DatabaseHandler:
         params = []
 
         if id is not None:
-            query += 'seller_id = ? AND '
+            if is_buyer:
+                query += 'buyer_id = ? AND '
+            else:
+                query += 'seller_id = ? AND '
             params.append(id)
 
         if filters is not None:
@@ -250,16 +253,12 @@ class DatabaseHandler:
         conn.close()
         return listing
 
-    def get_purchase_history(self, id: int) -> list[tuple]:
-        conn = sqlite3.connect(self.database_name)
-        cursor = conn.cursor()
-        cursor.execute('''SELECT * FROM listings WHERE buyer_id = ?''', (id,))
-        listings = cursor.fetchall()
-        conn.close()
+    def get_purchase_history(self, id: int, filters: dict[str, str]) -> Optional[list[tuple]]:
+        listings = self.get_listings(id=id, filters=filters, is_buyer=True)
         return listings
     
     def purchase_listing(self, listing_id: int, email: str, days: int) -> bool:
-        buyer_id = self.get_id(email)
+        buyer_id = self.get_user(email).id
         conn = sqlite3.connect(self.database_name)
         cursor = conn.cursor()
         cursor.execute('''UPDATE listings SET buyer_id = ? WHERE id = ?''', (buyer_id, listing_id))
@@ -270,8 +269,15 @@ class DatabaseHandler:
         price = cursor.fetchone()[0]
         if balance < price * days:
             return False
-        cursor.execute('''UPDATE users SET balance = balance - ? WHERE email = ?''', (price * days, email))
-        conn.close()
+        try:
+            cursor.execute('''UPDATE users SET balance = balance - ? WHERE email = ?''', (price * days, email))
+            conn.commit()
+        except sqlite3.Error as e:
+            print(f"An error occurred: {e}")
+            return False
+        finally:
+            conn.close()
+        return True
 
     def get_balance(self, email: str) -> float:
         conn = sqlite3.connect(self.database_name)

@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Post Listing</title>
+    <style>
+
+        .container {
+            max-width: 600px;
+            margin: 0px auto;
+            padding: 20px;
+            border-radius: 5px;
+            background-color: #fff;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .container-holder {
+            background-color: #f0f0f0;
+            padding: 20px;
+        }
+
+        h1,
+        h2 {
+            text-align: center;
+        }
+
+        form {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        label {
+            margin-top: 10px;
+        }
+
+        input[type="text"],
+        input[type="number"] input[type="email"],
+        input[type="color"],
+        textarea,
+        button {
+            width: 100%;
+            padding: 10px;
+            margin-top: 5px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            box-shadow: none;
+            transition: border-color 0.3s ease;
+        }
+
+        input[type="text"]:focus,
+        input[type="number"]:focus,
+        input[type="email"]:focus,
+        input[type="number"]:focus textarea:focus {
+            border-color: #007bff;
+        }
+
+        button {
+            background-color: #007bff;
+            color: #fff;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+
+<body>
+    {% include 'title.html' %}
+    <div class="container-holder">
+        <div class="container">
+            <h1>Post a Vehicle Listing</h1>
+            <form action="/listing/post/" method="post" id="filters">
+                <h2>Add details</h2>
+                <label for="make">Make:</label>
+                <input type="text" name="make">
+                <label for="model">Model:</label>
+                <input type="text" name="model">
+                <label for="year">Year:</label>
+                <input type="number" name="year">
+                <label for="color">Color:</label>
+                <select name="color">
+                    <option value="Black">Black</option>
+                    <option value="White">White</option>
+                    <option value="Red">Red</option>
+                    <option value="Blue">Blue</option>
+                    <option value="Silver">Silver</option>
+                </select>
+                <label for="car_type">Car Type:</label>
+                <select name="car_type">
+                    <option value="Sedan">Sedan</option>
+                    <option value="SUV">SUV</option>
+                    <option value="Truck">Truck</option>
+                    <option value="Coupe">Coupe</option>
+                    <option value="Convertible">Convertible</option>
+                </select>
+                <label for="price">Price Per Day:</label>
+                <input type="number" step="0.01" name="price">
+                <label for="state">State:</label>
+                <input type="text" name="state">
+                <label for="city">City:</label>
+                <input type="text" name="city">
+                <label for="start_date">Start Date:</label>
+                <input type="date" name="start_date">
+                <label for="end_date">End Date:</label>
+                <input type="date" name="end_date">
+                <button type="submit">Post</button>
+            </form>
+        </div>
+    </div>
+</body>
+
+</html>
+
+<script>
+    const form = document.getElementById('filters')
+
+    form.addEventListener('submit', (e) => {
+        e.preventDefault()
+
+        const formData = new FormData(form);
+        fetch(form.action, {
+
+            method: form.method,
+            body: formData
+
+        }).then(response => {
+            if (!response.ok) {
+                alert('Server could not post listing')
+            } else {
+                window.location = '/my_listings/'
+            }
+        }).catch(error => {
+            console.error('Error:', error)
+        });
+    });
+</script>

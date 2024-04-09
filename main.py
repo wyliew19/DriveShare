@@ -1,6 +1,7 @@
 from typing import Annotated
 from pathlib import Path
 from datetime import datetime
+from math import floor
 
 from fastapi import FastAPI, HTTPException, Request, Form, Depends
 from fastapi.staticfiles import StaticFiles
@@ -61,26 +62,28 @@ def logout():
 
 ####### Payment ####################################
 
-@app.get("/payment/auth", response_class=HTMLResponse)
+@app.get("/payment/auth/", response_class=HTMLResponse)
 def authorize(request: Request, listing_id: int, listing_manager: Annotated[ListingMediator, Depends(get_listing_manager)],
               user = Depends(get_current_user)):
     listing = listing_manager.get_listing(listing_id)
     strip_date = lambda x: datetime.strptime(x, "%Y-%m-%d")
     start_date = strip_date(listing.availability.start_date)
     end_date = strip_date(listing.availability.end_date)
+
+    # Determine the maximum number of days the user can rent the car
     max_days = (end_date - start_date).days
+    max_days = max_days if max_days > 0 else 1
+    max_days = floor(min(user.balance / listing.car.price, max_days))
     return templates.TemplateResponse("payment.html", {"request": request, "user": user, "max_days": max_days, "listing": listing})
 
 @app.post("/payment/auth")
 def payment(password: Annotated[str, Form(...)], days: Annotated[int, Form(...)],
             listing_manager: Annotated[ListingMediator, Depends(get_listing_manager)],
-            listing_id: int, user = Depends(get_current_user)):
-    proxy = PaymentProxy(user.email)
-    listing = listing_manager.get_listing(listing_id)
-    return proxy.authorize(password, listing, days)
+            listing_id: int, user: Annotated[User, Depends(get_current_user)]):
+    return listing_manager.purchase_listing(password, listing_id, user.id, days)
 
 @app.get("/payment_confirmation")
-def payment_confirmation(request: Request, amount: str, user = Depends(get_current_user)):
+def payment_confirmation(request: Request, amount: str, user: Annotated[User, Depends(get_current_user)]):
     return templates.TemplateResponse("payment_confirmation.html", {"request": request, "user": user, "amount": amount})
 
 ####### Payment ####################################
@@ -122,7 +125,7 @@ async def handle_security_questions(answers: Annotated[SecurityQuestionForm, Dep
 
 ####### Security Questions ###########################
 
-######## Password Recovery ##########################
+######## Password Recovery ###########################
 
 @app.get("/password_recovery", response_class=HTMLResponse)
 def password_recovery(request: Request):
@@ -184,10 +187,12 @@ def filter_listings(request: Request, filters: Annotated[FilterSettings, Depends
 
 @app.get("/listings/{id}", response_class=HTMLResponse)
 def listing(request: Request, id: int, listing_manager: Annotated[ListingMediator, Depends(get_listing_manager)],
-            user = Depends(get_current_user)):
+            user_manager: Annotated[UserMediator, Depends(get_user_manager)], user = Depends(get_current_user)):
     listing = listing_manager.get_listing(id)
-    return templates.TemplateResponse("listing.html", {"request": request, "listing": listing,
-                                                       "user": user, "ratings": listing_manager.get_rating(id)})
+    seller_email = user_manager[listing.seller_id].email
+
+    return templates.TemplateResponse("single_listing.html", {"request": request, "listing": listing, "user": user, 
+                                                              "seller_email": seller_email, "ratings": listing_manager.get_rating(listing.seller_id)})
 
 @app.get("/my_listings", response_class=HTMLResponse)
 def my_listings(request: Request, user: Annotated[User, Depends(get_current_user)], listing_manager: Annotated[ListingMediator, Depends(get_listing_manager)]):
@@ -201,11 +206,11 @@ def filter_my_listings(request: Request, user: Annotated[User, Depends(get_curre
     listings = listing_manager.get_listings(id=user.id, filters=filters)
     return templates.TemplateResponse("listings.html", {"request": request, "listings": listings, "user": user})
 
-@app.get("/listings/post", response_class=HTMLResponse)
-def post_listing(request: Request):
-    return templates.TemplateResponse("post_listing.html", {"request": request})
+@app.get("/listing/post", response_class=HTMLResponse)
+def post_listing(request: Request, user = Depends(get_current_user)):
+    return templates.TemplateResponse("post_listing.html", {"request": request, "user": user})
 
-@app.post("/listings/post")
+@app.post("/listing/post")
 def post_listing(listing_manager: Annotated[ListingMediator, Depends(get_listing_manager)],
                  post: Annotated[ListingPost, Depends()], user = Depends(get_current_user)):
     listing_manager.create_listing(user.email, post.make, post.model, post.year, post.color, post.car_type,
@@ -214,6 +219,29 @@ def post_listing(listing_manager: Annotated[ListingMediator, Depends(get_listing
 
     
 ####### Listings #####################################
+
+####### Rental History ###############################
+
+@app.get("/rental_history", response_class=HTMLResponse)
+def rental_history(request: Request, listing_manager: Annotated[ListingMediator, Depends(get_listing_manager)],
+                   user = Depends(get_current_user)):
+    listings = listing_manager.get_purchase_history(user.id)
+    return templates.TemplateResponse("listings.html", {"request": request, "listings": listings, "user": user})
+
+@app.post("/rental_history", response_class=HTMLResponse)
+def filter_rental_history(request: Request, filters: Annotated[FilterSettings, Depends()], listing_manager: Annotated[ListingMediator, Depends(get_listing_manager)],
+                          user = Depends(get_current_user)):
+    filters = as_dict(filters)
+    listings = listing_manager.get_purchase_history(user.id, filters=filters)
+    return templates.TemplateResponse("listings.html", {"request": request, "listings": listings, "user": user})
+
+@app.post("/rate_listing/{id}")
+def rate_listing(id: int, rating: int, listing_manager: Annotated[ListingMediator, Depends(get_listing_manager)]):
+    if rating not in [0, 1]:
+        raise HTTPException(status_code=400, detail="Invalid rating")
+    rating = bool(rating)
+    listing_manager.rate_listing(id, rating)
+    return {"message": "success"}
 
 ####### Add balance ##################################
 @app.post("/add_balance")

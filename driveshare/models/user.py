@@ -7,3 +7,5 @@ class User:
     """ID of user in database"""
     email: str
     """Email of user"""
+    balance: float
+    """Balance of user"""

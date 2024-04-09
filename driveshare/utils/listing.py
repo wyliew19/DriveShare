@@ -1,5 +1,8 @@
 from driveshare.utils.database import DatabaseHandler
 from driveshare.models.listing import Listing, Car, Location, Availability
+from driveshare.models.observer import AbstractObserver, AbstractSubject, Observer, MessageType
+from driveshare.security.payment import PaymentProxy
+from fastapi import HTTPException
 
 class ListingBuilder:
     """Builds a car listing from user"""
@@ -54,7 +57,7 @@ class ListingBuilder:
         return temp
         
 
-class ListingMediator:
+class ListingMediator(AbstractSubject):
     """Class to manage car listing operations with database"""
     _instance = None
 
@@ -67,9 +70,21 @@ class ListingMediator:
     def __init__(self):
         self.db = DatabaseHandler()
         self.builder = ListingBuilder()
+        self.observers = []
 
     def __getitem__(self, id):
         return self.get_listing(id)
+
+    def attach(self, observer: AbstractObserver):
+        self.observers.append(observer)
+
+    def detach(self, observer: AbstractObserver):
+        self.observers.remove(observer)
+
+    def notify(self, route: MessageType, email: str, listing: Listing, amount: float | None = None):
+        for observer in self.observers:
+            if observer == email:
+                observer.update(route, listing, amount)
 
     def _tuple_to_listing(self, listing_tuple: tuple) -> Listing:
         """Convert a tuple from the database to a Listing object"""
@@ -84,7 +99,7 @@ class ListingMediator:
                        start_date: str, end_date: str) -> Listing:
         """Create a new car listing"""
         # Get the seller id from the email
-        seller_id = self.db.get_user_id(email)
+        seller_id = self.db.get_user(email).id
         if seller_id is None:
             raise ValueError("User not found")
         listing = self.builder.build_listing(seller_id, None, make, model, year, color, car_type, price, city,
@@ -106,9 +121,22 @@ class ListingMediator:
         """Get a specific listing based on id"""
         return self._tuple_to_listing(self.db.get_listing(listing_id))
 
-    def purchase_listing(self, listing_id, buyer_id):
-        self.db.purchase_listing(listing_id, buyer_id)
-        return (self.get_listing(listing_id).buyer_id == buyer_id)
+    def purchase_listing(self, password: str, listing_id: int, buyer_id: int, days: int) -> dict[str, float] | None:
+        """Purchase a listing"""
+        buyer_email = self.db.get_user_email(buyer_id)
+        payment = PaymentProxy(buyer_email)
+
+        listing = self.get_listing(listing_id)
+        seller_email = self.db.get_user_email(listing.seller_id)
+        Observer(seller_email, self)
+        if listing.buyer_id is not None:
+            raise HTTPException(status_code=400, detail="Listing already purchased")
+        
+        amount = payment.authorize(password, listing, days)
+        if self.db.purchase_listing(listing_id, buyer_email, days):
+            self.notify(MessageType.PURCHASE, seller_email, listing, amount)
+            return {"amount": amount}
+        return None
 
     def rate_listing(self, listing_id: int, rating: bool):
         """Rate a listing"""
@@ -121,10 +149,9 @@ class ListingMediator:
         """Get the rating of a user"""
         return self.db.get_rating(id)
 
-
-    def get_purchase_history(self, id: int) -> list[Listing]:
+    def get_purchase_history(self, id: int, filters: dict[str, str] | None = None) -> list[Listing]:
         """Get the purchase history of a user"""
-        listings = self.db.get_purchase_history(id)
+        listings = self.db.get_purchase_history(id, filters)
         ret_list = []
         for listing in listings:
             ret_list.append(self._tuple_to_listing(listing))
