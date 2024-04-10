@@ -134,6 +134,7 @@ class ListingMediator(AbstractSubject):
         
         amount = payment.authorize(password, listing, days)
         if self.db.purchase_listing(listing_id, buyer_email, days):
+            self.db.add_balance(seller_email, amount)
             self.notify(MessageType.PURCHASE, seller_email, listing, amount)
             return {"amount": amount}
         return None
